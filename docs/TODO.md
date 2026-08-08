@@ -45,11 +45,10 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
    other sizes), `pattern()` legibility floor (claimed ~14 px — eyeballed only at
    22 px so far, check 1x vs retina), red/green/yellow brand seeds (light brands
    break naive ramps — only blue triad + violet + grey checked).
-3. **Tests as repo artifacts** — the in-browser checks above must become
-   `test/` files: a Playwright frame-hash test (render N frames at a fixed seed,
-   compare hash — would have caught octagons' `set({seed})` no-op) plus a
-   `palette()` snapshot test. Add `playwright` devDep, `npm test`, wire into the
-   pre-push gate and CI. The spec already budgets this (Layout section).
+3. ~~Playwright tests~~ — **cut by user decision 2026-08-09**: no test-runner
+   dependency. Verification = the documented in-browser check run executed by the
+   reviewer agent (see spec, "Verification model"). Revisit only after a real
+   escaped regression.
 
 ## Ideas, not scheduled
 

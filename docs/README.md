@@ -336,18 +336,21 @@ squatted `hexagons` via npm support remains possible later but does not block v0
 | `hexagons.js` | The source — the only hand-edited **distributable** (demo, tests, workflows are edited too, but only this file ships). ES5-style browser script, zero runtime deps. |
 | `hexagons.min.js` | **Generated** by `npm run build` (terser), **gitignored** — exists only locally and at publish time. |
 | `index.html` | Demo playground: sections incl. the spintax hero; live controls; own fps meter. |
-| `test/` | Frame-hash + `palette()` snapshot tests (see below). |
+| `scripts/size.mjs` | Cross-platform `npm run size`: terser API + Node zlib, no shell pipes (native Windows was breaking the shell pipeline for external reviewers). |
 
-Scripts: `build` (terser), `size` (gzip byte count), `lint` (eslint 9 flat config),
-`test` (the runner below). License MIT © 301ST.
+Scripts: `build` (terser), `size` (Node-zlib gzip byte count), `lint` (eslint 9
+flat config). License MIT © 301ST.
 
-**Testing needs a real browser, so the zero-deps claim is scoped precisely:** the
-*library* has zero dependencies; the *repo* carries `eslint`, `terser`, and
-**`playwright`** as devDependencies — the frame-hash test must rasterize a canvas
-reproducibly, and a pinned Chromium is the only way to do that in CI. `npm test`
-runs headless locally and in the release workflow; the pre-push gate calls it.
-(This resolves the spec-vs-backlog conflict the external review caught: tests were
-demanded but no runner was budgeted.)
+**Verification model (user decision 2026-08-09): no test-runner dependency.** An
+earlier revision planned `playwright` as a devDependency; the user cut it. The
+repo stays at `eslint` + `terser` only, and correctness is verified by the
+documented in-browser check run — the demo plus the console assertions listed in
+the acceptance criteria (seed determinism over 300 frames, corner alpha on
+transparent canvas, `palette()` purity, pin lifecycle via `get()`) — executed
+independently by the **reviewer agent** (`.agents/agents/reviewer.md`, the
+proof-loop's review side) rather than by CI automation. If a regression ever
+ships that this run would have caught, revisit runner-based tests with that
+incident as the justification.
 
 **Trusted Publisher (OIDC) is configured BEFORE the first release** — octagons
 shipped 0.1.0–0.1.2 without provenance and the cleanup is still on its TODO three
@@ -359,7 +362,8 @@ No `NPM_TOKEN` secret ever enters the repository. (Octagons ADR 003, adopted.)
 - ≤ 5.5 KB (5632 B) gzipped (`npm run size`). History of this number, all
   measured: octagons = 3764 B; the estimated 5.0 KB split (~3.7 engine + ~0.8
   palette + ~0.5 hex-specific) did **not** survive contact with terser — the
-  size-spike measured the full v0.1 feature set at **5232 B**, and the honest
+  size-spike measured the full v0.1 feature set at **5273 B** (canonical Node-zlib
+  `npm run size`; GNU gzip -9 says 5232 — compressors differ by 41 B), and the honest
   responses were to cut spec'd features or move the ceiling; the ceiling moved.
   Marketing copy says "~5 KB gzipped", which 5232 B is. Trim attempts are
   recorded in AGENTS.md: deduplication and loop-ification both *increased* the
