@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hexagons — animated honeycomb backgrounds</title>
+<style>
+	:root {
+		--bg: #05070d; --surface: rgba(10, 14, 24, 0.82); --text: #e8ecf5;
+		--muted: #9aa3b5; --border: rgba(140, 160, 200, 0.18);
+		--accent: #d6af3c; --link: #66cdf7;
+	}
+	body.light {
+		--bg: #f5f6fa; --surface: rgba(255, 255, 255, 0.85); --text: #1a2030;
+		--muted: #5d6575; --border: rgba(40, 60, 100, 0.15);
+	}
+	* { margin: 0; box-sizing: border-box; }
+	body {
+		background: var(--bg); color: var(--text);
+		font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+		transition: background 0.3s, color 0.3s;
+	}
+	section { position: relative; min-height: 100vh; overflow: hidden; }
+	.bg { position: absolute; inset: 0; z-index: 0; }
+	.content { position: relative; z-index: 1; }
+	a { color: var(--link); }
+
+	/* hero + controls */
+	.hero .content { display: flex; min-height: 100vh; align-items: center; padding: 4vw; gap: 4vw; flex-wrap: wrap; }
+	.hero h1 { font-size: clamp(2.2rem, 6vw, 4.5rem); letter-spacing: -0.02em; }
+	.hero p.tag { color: var(--muted); max-width: 34ch; margin-top: 0.6em; }
+	.panel {
+		margin-left: auto; background: var(--surface); backdrop-filter: blur(12px);
+		border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px;
+		width: 320px; max-width: 92vw; font-size: 13px;
+	}
+	.panel h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin: 14px 0 6px; }
+	.panel h2:first-child { margin-top: 0; }
+	.row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+	.row label { flex: 0 0 82px; color: var(--muted); }
+	.row input[type=range] { flex: 1; accent-color: var(--accent); }
+	.row output { flex: 0 0 38px; text-align: right; font-variant-numeric: tabular-nums; }
+	.row select, .row input[type=number] {
+		flex: 1; background: transparent; color: var(--text);
+		border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; font: inherit;
+	}
+	.row input[type=color] { width: 34px; height: 26px; border: 1px solid var(--border); border-radius: 6px; background: none; padding: 1px; }
+	.chk { display: inline-flex; align-items: center; gap: 5px; margin-right: 10px; color: var(--muted); }
+	.chk input { accent-color: var(--accent); }
+	.btn {
+		background: none; border: 1px solid var(--border); border-radius: 999px;
+		color: var(--text); padding: 4px 12px; font: inherit; cursor: pointer;
+	}
+	.btn:hover { border-color: var(--accent); }
+	#fps {
+		position: fixed; top: 14px; right: 16px; z-index: 9;
+		font: 12px/1 ui-monospace, monospace; color: var(--muted);
+		background: var(--surface); border: 1px solid var(--border);
+		border-radius: 999px; padding: 6px 12px;
+	}
+
+	/* spintax ad section */
+	.spintax .content {
+		min-height: 100vh; display: flex; flex-direction: column;
+		justify-content: center; align-items: center; text-align: center; padding: 6vw;
+	}
+	.spintax .kicker { color: var(--accent); font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; }
+	.spintax h2 { font-size: clamp(2rem, 5vw, 3.6rem); max-width: 22ch; margin: 0.4em 0; letter-spacing: -0.02em; }
+	.spintax p { color: var(--muted); max-width: 52ch; }
+	.cta {
+		display: inline-block; margin-top: 1.6em; background: var(--accent); color: #141414;
+		text-decoration: none; font-weight: 600; border-radius: 999px; padding: 12px 28px;
+	}
+	.spintax small { margin-top: 3em; color: var(--muted); }
+
+	/* pattern section */
+	.pat .content { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; padding: 6vw; }
+	.pat h2 { font-size: 1.8rem; margin-bottom: 0.4em; }
+	.pat p { color: var(--muted); max-width: 60ch; }
+	.pat pre {
+		margin-top: 1.5em; border: 1px solid var(--border); border-radius: 12px;
+		padding: 22px; overflow-x: auto; font: 13px/1.6 ui-monospace, monospace; color: var(--text);
+	}
+	footer { position: relative; z-index: 1; text-align: center; padding: 26px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div id="fps">— fps</div>
+
+<section class="hero">
+	<div class="bg" id="bg-hero"></div>
+	<div class="content">
+		<div>
+			<h1>hexagons</h1>
+			<p class="tag">Animated honeycomb backgrounds. Line art on canvas, zero
+			dependencies, ~5&nbsp;KB. One <code>brand</code> colour derives the whole
+			palette; one <code>seed</code> reproduces the whole field.</p>
+		</div>
+		<div class="panel" id="panel">
+			<h2>Scene</h2>
+			<div class="row"><label>mode</label>
+				<select data-k="mode"><option>hive</option><option>field</option></select></div>
+			<div class="row"><label>theme</label>
+				<select id="theme"><option>dark</option><option>light</option></select></div>
+			<h2>Brand → auto-palette</h2>
+			<div class="row"><label>brand</label>
+				<input type="color" id="b0" value="#00abf3">
+				<input type="color" id="b1" value="#d6af3c">
+				<input type="color" id="b2" value="#a91455">
+				<button class="btn" id="spintax-reset" title="spintax.net logo triad">↺</button></div>
+			<h2>Hive</h2>
+			<div class="row"><label>size</label><input type="range" data-k="size" min="24" max="220" value="90"><output>90</output></div>
+			<div class="row"><label>bond</label><input type="range" data-k="bond" min="0" max="0.4" step="0.01" value="0"><output>0</output></div>
+			<div class="row"><label>inset</label><input type="range" data-k="inset" min="0" max="10" step="0.5" value="0"><output>0</output></div>
+			<div class="row"><label>sweep</label><input type="range" data-k="sweep" min="0" max="3" step="0.1" value="1"><output>1</output></div>
+			<div class="row"><label>orientation</label>
+				<select data-k="orientation"><option>pointy</option><option>flat</option></select></div>
+			<h2>Field</h2>
+			<div class="row"><label>count</label><input type="range" data-k="count" min="20" max="240" value="110"><output>110</output></div>
+			<div class="row"><label>seed</label><input type="number" id="seed" placeholder="random"><button class="btn" id="reseed">roll</button></div>
+			<h2>Both</h2>
+			<div class="row"><label>speed</label><input type="range" data-k="speed" min="0" max="3" step="0.1" value="1"><output>1</output></div>
+			<div class="row"><label>weight</label><input type="range" data-k="weight" min="0.4" max="3" step="0.1" value="1"><output>1</output></div>
+			<div class="row"><label>vignette</label><input type="range" data-k="vignette" min="0" max="0.9" step="0.05" value="0.45"><output>0.45</output></div>
+			<div class="row" style="margin-top:8px">
+				<span class="chk"><input type="checkbox" data-k="glow" checked>glow</span>
+				<span class="chk"><input type="checkbox" data-k="nesting" checked>nesting</span>
+				<span class="chk"><input type="checkbox" data-k="parallax" checked>parallax</span>
+			</div>
+		</div>
+	</div>
+</section>
+
+<section class="spintax">
+	<div class="bg" id="bg-spintax"></div>
+	<div class="content">
+		<div class="kicker">This hive runs on the spintax idea</div>
+		<h2>One template. Thousands of unique variants.</h2>
+		<p>The background you are looking at is one integer away from being a different
+		one — that is what a <code>seed</code> does. <a href="https://spintax.net">spintax.net</a>
+		does the same for text: write one template, expand it into thousands of unique,
+		deterministic variants. No per-generation API costs, full quality control.</p>
+		<a class="cta" href="https://spintax.net">See it on spintax.net →</a>
+		<small>Free &amp; open source · playground, Windows editor, WordPress plugin</small>
+	</div>
+</section>
+
+<section class="pat">
+	<div class="bg" id="bg-pat"></div>
+	<div class="content">
+		<h2>Static pattern — no canvas at all</h2>
+		<p>The honeycomb repeats on a <code>size × √3·size</code> tile, so
+		<code>Hexagons.pattern()</code> returns a seamless SVG as a ready-to-use
+		<code>background-image</code>. This whole section — and this code block — are
+		painted with it. Nothing animates, nothing runs.</p>
+		<pre id="pat-pre">// derived from the same brand triad
+document.body.style.backgroundImage =
+  Hexagons.pattern({ size: 18, opacity: 0.09, theme: 'dark' });
+
+// or explicit
+Hexagons.pattern({ size: 24, color: '#d6af3c', opacity: 0.15 });</pre>
+	</div>
+</section>
+
+<footer>Made in <a href="https://301.st">301</a> · for <a href="https://spintax.net">spintax.net</a></footer>
+
+<script src="hexagons.js"></script>
+<script>
+(function () {
+	'use strict';
+	var TRIAD = ['#00abf3', '#d6af3c', '#a91455'];
+
+	var hero = Hexagons.init('#bg-hero', { mode: 'hive', bond: 0 });
+	var ad = Hexagons.init('#bg-spintax', { mode: 'field', seed: 42, count: 130, size: 70 });
+
+	function brand() {
+		return [document.getElementById('b0').value,
+			document.getElementById('b1').value,
+			document.getElementById('b2').value];
+	}
+	function theme() { return document.getElementById('theme').value; }
+
+	function paintPattern() {
+		var pal = Hexagons.palette(brand(), { theme: theme() });
+		var el = document.getElementById('bg-pat');
+		el.style.backgroundImage = Hexagons.pattern({ brand: brand(), theme: theme(), size: 22, opacity: 0.1 });
+		el.style.backgroundColor = pal.background;
+		document.getElementById('pat-pre').style.backgroundImage =
+			Hexagons.pattern({ brand: brand(), theme: theme(), size: 14, opacity: 0.07 });
+	}
+	function applyBrand() {
+		hero.set({ brand: brand(), theme: theme() });
+		ad.set({ brand: brand(), theme: theme() });
+		paintPattern();
+	}
+
+	// controls -> set()
+	var panel = document.getElementById('panel');
+	panel.addEventListener('input', function (e) {
+		var k = e.target.getAttribute('data-k');
+		if (!k) return;
+		var v;
+		if (e.target.type === 'checkbox') v = e.target.checked;
+		else if (e.target.type === 'range') { v = +e.target.value; e.target.nextElementSibling.value = v; }
+		else v = e.target.value;
+		hero.set((function (o) { o[k] = v; return o; })({}));
+	});
+	document.getElementById('theme').addEventListener('input', function () {
+		document.body.className = theme() === 'light' ? 'light' : '';
+		applyBrand();
+	});
+	document.getElementById('b0').addEventListener('input', applyBrand);
+	document.getElementById('b1').addEventListener('input', applyBrand);
+	document.getElementById('b2').addEventListener('input', applyBrand);
+	document.getElementById('spintax-reset').addEventListener('click', function () {
+		document.getElementById('b0').value = TRIAD[0];
+		document.getElementById('b1').value = TRIAD[1];
+		document.getElementById('b2').value = TRIAD[2];
+		applyBrand();
+	});
+	document.getElementById('reseed').addEventListener('click', function () {
+		var s = Math.floor(Math.random() * 1e6);
+		document.getElementById('seed').value = s;
+		hero.set({ seed: s });
+	});
+	document.getElementById('seed').addEventListener('input', function (e) {
+		if (e.target.value !== '') hero.set({ seed: +e.target.value });
+	});
+
+	paintPattern();
+
+	// fps meter — the page's own, per AGENTS.md (screen capture depresses it)
+	var frames = 0, t0 = performance.now();
+	(function loop(now) {
+		frames++;
+		if (now - t0 >= 1000) {
+			document.getElementById('fps').textContent = frames + ' fps';
+			frames = 0; t0 = now;
+		}
+		requestAnimationFrame(loop);
+	})(performance.now());
+})();
+</script>
+</body>
+</html>

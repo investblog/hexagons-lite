@@ -65,6 +65,14 @@ verbatim here because the engine is a port. New lessons of hexagons' own — app
 - **Do not justify an omission with an unverified mechanism.** A wrong reason is worse
   than no reason: it survives review by sounding deliberate.
 
+### Project-specific — hexagons' own (earned here)
+- **Gzip beats clever — trim only by measurement.** Deduplicating the vertex table
+  into a shared function grew the gzipped output by 20 B, and replacing unrolled
+  derivation triples with loops grew it by 17 B more: gzip compresses repetition
+  better than abstraction. Aliasing `Math` saved 4 B; `passes=3,unsafe` saved 3 B.
+  Every size trim must be measured with `npm run size` before it is kept, and
+  "cleaner" refactors must not be assumed smaller.
+
 ### npm publishing — the three failures, in the order they appear
 Each one reports something other than its cause (all three hit octagons):
 - **`is not a legal HTTP header value`** → the token secret contains whitespace or a

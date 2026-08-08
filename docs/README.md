@@ -20,7 +20,7 @@ machinery — with the geometry story inverted and the promotion target switched
 
 Animated honeycomb backgrounds built from **regular** hexagons. Line art on canvas —
 the colour gradient runs along the edges, nothing is ever filled. Zero dependencies,
-under 5 KB gzipped. Two modes: hexagons drifting toward the viewer in depth, or the
+~5 KB gzipped. Two modes: hexagons drifting toward the viewer in depth, or the
 living honeycomb lattice. Two knobs span the whole variant space: **`seed`** spins
 the geometry (one integer, one hive — reproducibly), **`brand`** spins the colours
 (one hex, the whole palette — see Auto-palette). That is the spintax idea applied to
@@ -109,7 +109,7 @@ document.querySelector('pre').style.backgroundImage =
 | Option | Default | What |
 |---|---|---|
 | `size` | `18` | Width across flats in px (the one unit — see geometry table); the repeat tile is `size × √3·size` |
-| `brand` | spintax.net hex | Auto-palette seed; `color` defaults to the derived middle gradient stop |
+| `brand` | spintax logo triad | Auto-palette seed (hex or array); `color` defaults to the derived middle gradient stop |
 | `theme` | `'light'` | Derivation profile for `brand` (patterns usually sit on light surfaces) |
 | `color` | *derived* | Stroke colour; explicit value overrides derivation |
 | `opacity` | `0.12` | Stroke opacity — the contrast knob |
@@ -137,7 +137,19 @@ brand colour:
 ```js
 Hexagons.init('.bg', { brand: '#7c5cff' });          // whole scene from one hex
 Hexagons.init('.bg', { brand: '#7c5cff', accent: '#ffb347' });  // explicit wins
+Hexagons.init('.bg', { brand: ['#00abf3', '#d6af3c', '#a91455'] });  // multi-colour brand
 ```
+
+`brand` accepts **a hex or an array of hexes** — real brands are often not one
+colour (spintax.net's own `theme.css` opens with "Palette derived from logo:
+#00abf3 blue, #d6af3c gold, #a91455 magenta"). This mirrors the progenitor
+exactly: the engine's input *is* a colour array (`FlagPalette.flagColors`), and
+its rule is that the `H+40°` synthetic complement is built **only when a single
+chromatic colour is supplied** (`buildCandidatePool`, `chromatic.length === 1`);
+with more, the real colours take the roles. Here: `brand[0]` drives the hue of
+`background`/`halo`/`colors` ramp, `brand[1]` (when present) replaces the
+synthetic accent, `brand[2]` (when present) tints `hot`. Achromatic entries
+(C < 12) are skipped for role assignment, same as the engine.
 
 What we take is the **principle**, not the code: the full engine does WCAG role
 assignment (link/focusRing/accentText) for text UIs — irrelevant to line art and far
@@ -156,8 +168,8 @@ too heavy for a 4 KB budget. The hexagons subset:
    | `background` | `L 6, C min(0.2·C, 10), H` | `L 97, C 3, H` |
    | `halo` | `L 12, C min(0.3·C, 15), H` | `L 92, C min(0.2·C, 8), H` |
    | `colors[0..2]` | `L 32/58/82`, `C ×0.9/1.0/0.55`, `H` | `L 72/52/32` (ramp inverted), same chroma scaling |
-   | `accent` | `L 70, C, H+40°` | `L 45, C, H+40°` |
-   | `hot` | `L 92, C 12, H` | `L 28, C 24, H` |
+   | `accent` | `L 70, C, H+40°` *(or `brand[1]`'s C/H)* | `L 45, C, H+40°` *(or `brand[1]`'s C/H)* |
+   | `hot` | `L 92, C 12, H` *(H from `brand[2]` if present)* | `L 28, C 24, H` *(same)* |
 
    The `H+40°` accent rule is the engine's own synthetic-complement rule
    (`buildCandidatePool`), adopted as-is.
@@ -189,7 +201,9 @@ too heavy for a 4 KB budget. The hexagons subset:
    gradient stop for the chosen theme).
 
 The default palette **is** the auto-palette: the source ships one constant —
-spintax.net's brand hex — and derives everything else from it. No hand-picked
+spintax.net's logo triad `['#00abf3', '#d6af3c', '#a91455']` (blue / gold /
+magenta, confirmed against both the logo SVG and the site's `theme.css`) — and
+derives everything else from it. No hand-picked
 colour table exists in the library at all; spintax.net is client zero of its own
 mechanism. Size budget for the whole feature (LCH↔sRGB + guard): ~0.6–0.8 KB
 gzipped, inside the raised 4 KB ceiling.
@@ -202,7 +216,7 @@ user of one library can drive the other without relearning:
 | Option | Default | Applies to | What |
 |---|---|---|---|
 | `mode` | `'field'` | — | `'field'` or `'hive'` |
-| `brand` | spintax.net hex | both | Auto-palette seed; derives all colour options below (see Auto-palette). Settable live; re-deriving rebuilds gradients only |
+| `brand` | spintax logo triad | both | Auto-palette seed — hex or array of hexes (see Auto-palette). Settable live; re-deriving rebuilds gradients only |
 | `theme` | `'dark'` | both | `'dark'` or `'light'` — which derivation profile `brand` uses; ignored when all colour options are explicit |
 | `colors` | *derived* | both | Gradient stops along the edges; explicit value overrides derivation |
 | `accent` | *derived* | field | Colour of the occasional highlighted cell |
@@ -342,11 +356,14 @@ No `NPM_TOKEN` secret ever enters the repository. (Octagons ADR 003, adopted.)
 
 ## Acceptance criteria for v0.1.0
 
-- ≤ 5.0 KB gzipped (`npm run size`). Grounded in measurement, not hope: octagons'
-  actual `npm run size` is **3764 B**, so the old 4.0 KB ceiling left ~330 B for
-  the auto-palette, `orientation`, `inset`, and hive — unrealistic (external review
-  caught this). Budget: ~3.7 KB engine + ~0.8 KB palette + ~0.5 KB hexagon-specific.
-  An early size-spike (TODO) validates the split before features pile up.
+- ≤ 5.5 KB (5632 B) gzipped (`npm run size`). History of this number, all
+  measured: octagons = 3764 B; the estimated 5.0 KB split (~3.7 engine + ~0.8
+  palette + ~0.5 hex-specific) did **not** survive contact with terser — the
+  size-spike measured the full v0.1 feature set at **5232 B**, and the honest
+  responses were to cut spec'd features or move the ceiling; the ceiling moved.
+  Marketing copy says "~5 KB gzipped", which 5232 B is. Trim attempts are
+  recorded in AGENTS.md: deduplication and loop-ification both *increased* the
+  gzipped size — trim only by measurement.
 - `Hexagons.palette()` is pure and deterministic: same hex ⇒ identical output, both
   themes; snapshot-tested. Derived stops clear the edge-visibility floors vs
   `background`; achromatic seeds (chroma < 12) produce a neutral palette, never an

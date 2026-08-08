@@ -14,14 +14,18 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
 
 - ~~Package name~~ — **decided: `hexagons-lite`** (ADR 003, verified free E404).
   Optional later: npm support dispute for the squatted `hexagons`.
-- **Size-spike first.** Measured fact: octagons' `npm run size` = 3764 B, so the
-  5 KB ceiling (ADR-adjusted from 4) leaves ~1.2 KB for palette + hive extras.
-  Before building features, port the engine skeleton + a stub palette and measure —
-  the split (~3.7 engine / ~0.8 palette / ~0.5 hex-specific) must survive contact
-  with terser before the README promises "under 5 KB". (External review, accepted.)
-- **Sample spintax.net's brand hex** — one colour, the only colour constant in the
-  source: it seeds the auto-palette (ADR 002) and everything else is derived. Do not
-  hand-pick a palette; that mechanism existing is the point.
+- ~~Size-spike first~~ — **done 2026-08-08, estimate lost to measurement**: the
+  full v0.1 feature set minifies to **5232 B** gzip, not under 5120. Trims tried
+  and measured: matrix-precision + compact guards (−37 B, kept), vertex dedup
+  (+20 B — gzip compresses repetition better than a shared function; reverted the
+  loop forms, kept the dedup for source clarity), `Math` aliasing (−4 B, not worth
+  it), terser `passes=3,unsafe` (−3 B). Ceiling moved to 5.5 KB in the spec;
+  cutting spec'd features (`get()`, `inset`, pattern `brand`) to save ~2% was
+  rejected as backwards. Lesson recorded in AGENTS.md.
+- ~~Sample spintax.net's brand~~ — **done 2026-08-08**: the logo triad
+  `['#00abf3', '#d6af3c', '#a91455']` (blue/gold/magenta), confirmed by both the
+  logo SVG and spintax.net's `theme.css` header comment. `brand` extended to
+  hex | hex[] (ADR 002 addendum).
 - **Create the GitHub repo** (`investblog/hexagons` — verify the name is free) and
   configure **npm Trusted Publisher BEFORE the first tag**. Order: repo → trusted
   publisher → `release.yml` → tag. No `NPM_TOKEN` secret, ever — octagons' three
@@ -29,27 +33,23 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
 
 ## Open — implementation, in order
 
-1. Port the engine from `W:\Projects\octagons-lite\octagons.js`: field mode with a
-   6-vertex path, seed/mulberry32, step(dt), sleeping, cached gradients.
-2. **Auto-palette module** (ADR 002): LCH↔sRGB, the derivation table, edge-visibility
-   guards, achromatic fallback, `Hexagons.palette()`. Reference:
-   `casino-platform/packages/core/utils/token-engine/` (`color.ts`, `contrast.ts` —
-   port the conversion math, not the role machinery). Budget ~0.6–0.8 KB gzipped.
-3. Hive mode: 6.6.6 lattice, sweep, deterministic bonding (`hash(i,j,d)`, 3 owned
-   walls per cell), `orientation`, `inset`.
-4. `pattern()` with the `√3·s × 3s` rectangular repeat; verify seamlessness.
-5. Demo `index.html`: controls for every option **including a `brand` colour
-   picker** (visitors repaint the hive to their brand — the option selling itself),
-   fps meter, both themes, and the **spintax.net hero section** (the ad surface).
-6. Verify the spec's unverified numbers before they reach the README: `bond` useful
-   range (claimed 0.10–0.20), `pattern()` legibility floor (claimed ~14 px), seed
-   determinism at 300 frames, and the **auto-palette derivation table** (eyeball at
-   least: spintax brand, a red, a green, a yellow — light brands break naive ramps —
-   and one grey seed; then freeze the constants in the spec).
-7. **Tests from day one** — octagons still has none and regrets it: a headless
-   frame-hash test (render N frames at a fixed seed, compare hash) would have caught
-   its `set({seed})` no-op automatically; plus a `palette()` snapshot test (pure
-   function, trivially cheap). Wire both into the pre-push gate.
+1. ~~Port the engine~~ / ~~auto-palette module~~ / ~~hive mode~~ / ~~pattern()~~ /
+   ~~demo~~ — **done 2026-08-09** (`hexagons.js`, `index.html`). Verified visually
+   in Chrome, dark + light, per AGENTS.md: hive lattice correct (no gaps, no
+   double-strokes), bond fuses polyhexes, inset gives double walls, flat
+   orientation works, pattern seamless at 22 px, 61 fps steady in one clean tab.
+   Verified in-browser: seed determinism (two 300-frame runs pixel-identical),
+   corner alpha 0 with `background: null`, `palette()` pure, grey seed → graphite.
+2. **Verification still owed before the README publishes numbers:** `bond` useful
+   range across sizes (0.12 looked right at size 90 — check 0.10–0.20 claim at
+   other sizes), `pattern()` legibility floor (claimed ~14 px — eyeballed only at
+   22 px so far, check 1x vs retina), red/green/yellow brand seeds (light brands
+   break naive ramps — only blue triad + violet + grey checked).
+3. **Tests as repo artifacts** — the in-browser checks above must become
+   `test/` files: a Playwright frame-hash test (render N frames at a fixed seed,
+   compare hash — would have caught octagons' `set({seed})` no-op) plus a
+   `palette()` snapshot test. Add `playwright` devDep, `npm test`, wire into the
+   pre-push gate and CI. The spec already budgets this (Layout section).
 
 ## Ideas, not scheduled
 

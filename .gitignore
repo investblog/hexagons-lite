@@ -37,3 +37,4 @@ context/attachments/
 
 # OS junk
 .DS_Store
+hexagons.min.js

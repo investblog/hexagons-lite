@@ -1,0 +1,50 @@
+{
+  "name": "hexagons-lite",
+  "version": "0.1.0",
+  "description": "Animated honeycomb backgrounds built from regular hexagons. Line art, zero dependencies, brand-aware auto-palette.",
+  "main": "hexagons.js",
+  "files": [
+    "hexagons.js",
+    "hexagons.min.js",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "terser hexagons.js --compress --mangle -o hexagons.min.js",
+    "size": "terser hexagons.js --compress --mangle | gzip -9 | wc -c",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "hexagon",
+    "hexagons",
+    "honeycomb",
+    "background",
+    "canvas",
+    "animation",
+    "generative",
+    "generative-art",
+    "line-art",
+    "geometric",
+    "pattern",
+    "tiling",
+    "palette",
+    "zero-dependencies",
+    "vanilla-js",
+    "hero-background",
+    "background-animation",
+    "svg-pattern"
+  ],
+  "author": "301st (https://301.st)",
+  "license": "MIT",
+  "homepage": "https://github.com/investblog/hexagons#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/investblog/hexagons.git"
+  },
+  "bugs": {
+    "url": "https://github.com/investblog/hexagons/issues"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.4",
+    "terser": "^5.37.0"
+  }
+}
