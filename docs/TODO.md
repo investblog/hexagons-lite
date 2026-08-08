@@ -14,10 +14,11 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
 
 - **Package name.** `hexagons` on npm is a 0.0.0 squat; `honeycombs`, `hexes` taken.
   Free (checked 2026-08-08): `hexlines` (recommended), `hexagon-bg`, `hexagons.js`.
-  User decision — then record it as ADR 002 and optionally file an npm support
+  User decision — then record it as ADR 003 and optionally file an npm support
   dispute for `hexagons` in parallel (must not block v0.1).
-- **Sample the spintax.net palette** for default `colors`/`accent`/`background`/`hot`
-  before coding — the spec deliberately leaves them tbd rather than inventing values.
+- **Sample spintax.net's brand hex** — one colour, the only colour constant in the
+  source: it seeds the auto-palette (ADR 002) and everything else is derived. Do not
+  hand-pick a palette; that mechanism existing is the point.
 - **Create the GitHub repo** (`investblog/hexagons` — verify the name is free) and
   configure **npm Trusted Publisher BEFORE the first tag**. Order: repo → trusted
   publisher → `release.yml` → tag. No `NPM_TOKEN` secret, ever — octagons' three
@@ -27,18 +28,25 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
 
 1. Port the engine from `W:\Projects\octagons-lite\octagons.js`: field mode with a
    6-vertex path, seed/mulberry32, step(dt), sleeping, cached gradients.
-2. Hive mode: 6.6.6 lattice, sweep, deterministic bonding (`hash(i,j,d)`, 3 owned
+2. **Auto-palette module** (ADR 002): LCH↔sRGB, the derivation table, edge-visibility
+   guards, achromatic fallback, `Hexagons.palette()`. Reference:
+   `casino-platform/packages/core/utils/token-engine/` (`color.ts`, `contrast.ts` —
+   port the conversion math, not the role machinery). Budget ~0.6–0.8 KB gzipped.
+3. Hive mode: 6.6.6 lattice, sweep, deterministic bonding (`hash(i,j,d)`, 3 owned
    walls per cell), `orientation`, `inset`.
-3. `pattern()` with the `√3·s × 3s` rectangular repeat; verify seamlessness.
-4. Demo `index.html`: controls for every option, fps meter, both themes, and the
-   **spintax.net hero section** (the ad surface).
-5. Verify the spec's unverified numbers before they reach the README: `bond` useful
-   range (claimed 0.10–0.20), `pattern()` legibility floor (claimed ~14 px),
-   seed determinism at 300 frames.
-6. **Tests from day one** — octagons still has none and regrets it: a headless
+4. `pattern()` with the `√3·s × 3s` rectangular repeat; verify seamlessness.
+5. Demo `index.html`: controls for every option **including a `brand` colour
+   picker** (visitors repaint the hive to their brand — the option selling itself),
+   fps meter, both themes, and the **spintax.net hero section** (the ad surface).
+6. Verify the spec's unverified numbers before they reach the README: `bond` useful
+   range (claimed 0.10–0.20), `pattern()` legibility floor (claimed ~14 px), seed
+   determinism at 300 frames, and the **auto-palette derivation table** (eyeball at
+   least: spintax brand, a red, a green, a yellow — light brands break naive ramps —
+   and one grey seed; then freeze the constants in the spec).
+7. **Tests from day one** — octagons still has none and regrets it: a headless
    frame-hash test (render N frames at a fixed seed, compare hash) would have caught
-   its `set({seed})` no-op automatically. `seed` + `step(dt)` make this cheap; wire
-   it into the pre-push gate.
+   its `set({seed})` no-op automatically; plus a `palette()` snapshot test (pure
+   function, trivially cheap). Wire both into the pre-push gate.
 
 ## Ideas, not scheduled
 

@@ -20,9 +20,10 @@ machinery — with the geometry story inverted and the promotion target switched
 
 Animated honeycomb backgrounds built from **regular** hexagons. Line art on canvas —
 the colour gradient runs along the edges, nothing is ever filled. Zero dependencies,
-~3 KB gzipped. Two modes: hexagons drifting toward the viewer in depth, or the living
-honeycomb lattice. One `seed` integer makes the whole field reproducible — one seed,
-one hive; change the seed, a new variant. That is the spintax idea applied to
+~3–4 KB gzipped. Two modes: hexagons drifting toward the viewer in depth, or the
+living honeycomb lattice. Two knobs span the whole variant space: **`seed`** spins
+the geometry (one integer, one hive — reproducibly), **`brand`** spins the colours
+(one hex, the whole palette — see Auto-palette). That is the spintax idea applied to
 geometry, and it is why the library carries spintax.net's colours in its credits.
 
 ## The load-bearing geometry (the inversion of octagons)
@@ -101,7 +102,9 @@ document.querySelector('pre').style.backgroundImage =
 | Option | Default | What |
 |---|---|---|
 | `size` | `18` | Cell pitch (width across flats) in px |
-| `color` | `'#8fa2ff'` | Stroke colour *(placeholder — restate in spintax.net palette before release)* |
+| `brand` | spintax.net hex | Auto-palette seed; `color` defaults to the derived middle gradient stop |
+| `theme` | `'light'` | Derivation profile for `brand` (patterns usually sit on light surfaces) |
+| `color` | *derived* | Stroke colour; explicit value overrides derivation |
 | `opacity` | `0.12` | Stroke opacity — the contrast knob |
 | `weight` | `1` | Stroke width |
 | `orientation` | `'pointy'` | `'pointy'` or `'flat'` |
@@ -113,6 +116,66 @@ Legibility floor: six corners at 120° survive smaller pitches than eight at 135
 expect hexagons to stay legible down to roughly **14 px** where octagons needed 24.
 Verify on 1x and retina before the README states the number.
 
+## Auto-palette (`brand`)
+
+Principle inherited from `W:\Projects\casino-platform`'s token-engine, whose
+progenitor is `W:\Projects\dark-theme-generator`: **one brand colour in, a full
+derived palette out — deterministically, in LCH, with contrast guards.** In
+casino-platform every casino stores a single `brand_color_hex` and the server
+derives all site tokens from it; the same engine already feeds a sibling background
+library via `mapToTrigonsConfig()` (`colors: [bg, surface, accent]`). Hexagons
+builds that capability in, so any site drops the background in with nothing but its
+brand colour:
+
+```js
+Hexagons.init('.bg', { brand: '#7c5cff' });          // whole scene from one hex
+Hexagons.init('.bg', { brand: '#7c5cff', accent: '#ffb347' });  // explicit wins
+```
+
+What we take is the **principle**, not the code: the full engine does WCAG role
+assignment (link/focusRing/accentText) for text UIs — irrelevant to line art and far
+too heavy for a 4 KB budget. The hexagons subset:
+
+1. **Derivation in LCH.** Parse `brand` → `(L, C, H)`. Derive every colour option
+   from it (starting values — verify visually per proof-loop, then freeze here):
+
+   | Token | Dark (default) | Light |
+   |---|---|---|
+   | `background` | `L 6, C min(0.2·C, 10), H` | `L 97, C 3, H` |
+   | `halo` | `L 12, C min(0.3·C, 15), H` | `L 92, C min(0.2·C, 8), H` |
+   | `colors[0..2]` | `L 32/58/82`, `C ×0.9/1.0/0.55`, `H` | `L 72/52/32` (ramp inverted), same chroma scaling |
+   | `accent` | `L 70, C, H+40°` | `L 45, C, H+40°` |
+   | `hot` | `L 92, C 12, H` | `L 28, C 24, H` |
+
+   The `H+40°` accent rule is the engine's own synthetic-complement rule
+   (`buildCandidatePool`), adopted as-is.
+2. **Contrast guard, edge-visibility flavour.** No text here, so the constraint is
+   not WCAG pairs but *line legibility*: each gradient stop must clear a floor
+   against `background` (targets: dimmest stop ≥ 1.5:1, middle ≥ 2.5:1, brightest
+   ≥ 5:1; `hot` ≥ 7:1). Repair by shifting **L only** — hue and chroma are the
+   brand's identity and are preserved (the engine's fidelity principle).
+3. **Achromatic seed.** If brand chroma < 12 (grey/black/white brands), do **not**
+   invent a hue — derive a neutral graphite palette (the engine's
+   `NEUTRAL_ONLY_FLAG` case, resolved the same way).
+4. **Explicit overrides win.** `brand` only fills colour options the caller did not
+   pass; any explicit `colors`/`accent`/`hot`/`background`/`halo` is untouched.
+5. **Deterministic and exposed.** Same hex ⇒ same palette, no randomness — `brand`
+   never touches geometry, `seed` never touches colour. The derivation is public:
+
+   ```js
+   Hexagons.palette('#7c5cff')                    // → {colors, accent, hot, background, halo}
+   Hexagons.palette('#7c5cff', { theme: 'light' })
+   ```
+
+   `pattern({ brand, theme })` uses the same derivation (its `color` = the middle
+   gradient stop for the chosen theme).
+
+The default palette **is** the auto-palette: the source ships one constant —
+spintax.net's brand hex — and derives everything else from it. No hand-picked
+colour table exists in the library at all; spintax.net is client zero of its own
+mechanism. Size budget for the whole feature (LCH↔sRGB + guard): ~0.6–0.8 KB
+gzipped, inside the raised 4 KB ceiling.
+
 ## Options (v0.1 contract)
 
 Identical to octagons wherever the concept carries over — this is deliberate, so a
@@ -121,11 +184,13 @@ user of one library can drive the other without relearning:
 | Option | Default | Applies to | What |
 |---|---|---|---|
 | `mode` | `'field'` | — | `'field'` or `'hive'` |
-| `colors` | 3-stop gradient | both | Gradient stops along the edges *(final values from spintax.net palette)* |
-| `accent` | tbd | field | Colour of the occasional highlighted cell |
-| `hot` | tbd | hive | Colour of the sweeping light band |
-| `background` | dark tbd | both | Base fill; `null` = transparent canvas |
-| `halo` | tbd | both | Soft central glow; `null` disables |
+| `brand` | spintax.net hex | both | Auto-palette seed; derives all colour options below (see Auto-palette). Settable live; re-deriving rebuilds gradients only |
+| `theme` | `'dark'` | both | `'dark'` or `'light'` — which derivation profile `brand` uses; ignored when all colour options are explicit |
+| `colors` | *derived* | both | Gradient stops along the edges; explicit value overrides derivation |
+| `accent` | *derived* | field | Colour of the occasional highlighted cell |
+| `hot` | *derived* | hive | Colour of the sweeping light band |
+| `background` | *derived* | both | Base fill; `null` = transparent canvas |
+| `halo` | *derived* | both | Soft central glow; `null` disables |
 | `size` | `90` | both | Lattice pitch in px; scale factor for the field |
 | `count` | `110` | field | Number of hexagons |
 | `seed` | *none* | field | Integer; reproducible scatter (see determinism). Settable live; re-seeding rebuilds the field |
@@ -152,10 +217,13 @@ otherwise the same handle as octagons:
 ```js
 var hx = Hexagons.init('.bg');
 hx.set({ mode: 'hive', bond: 0.15 });  // change options live — set({seed}) MUST work (octagons shipped that bug)
+hx.set({ brand: '#e0356b' });          // re-derives palette, rebuilds cached gradients, geometry untouched
 hx.stop(); hx.start();
 hx.step(1 / 60);                       // one frame off the rAF clock
 hx.resize(); hx.destroy();
 hx.canvas;
+
+Hexagons.palette('#e0356b');           // pure: the derived set, no canvas involved
 ```
 
 Single global `Hexagons`, browser script, no module build; `main` points at the
@@ -207,7 +275,8 @@ The promo surfaces, mirroring how octagons carries generator.ink / oktagon.bet:
 | Demo panel | "Made in 301 · for spintax.net" (link) |
 | Demo section | One of the demo sections is a mock **spintax.net hero** — the hive behind spintax's actual tagline, with a live "see it on spintax.net →" link. The demo is the ad. |
 | `package.json` | `author: "301st (https://301.st)"`, homepage → repo; keywords stay honest npm search terms (hexagon, honeycomb, background, canvas, generative, line-art, …) — no keyword spam |
-| Default palette | Derive `colors`/`accent`/`background` from spintax.net's own palette, so every embed is on-brand by default. Sample the live site before coding; do not invent values here. |
+| Default palette | The auto-palette seeded with **spintax.net's brand hex** — the only colour constant in the source. Every default embed is on-brand, and spintax.net is client zero of the `brand` mechanism. Sample the one hex from the live site before coding. |
+| Demo control | A `brand` colour picker in the demo panel — visitors repaint the hive to *their* brand in one click, which is the `brand` option selling itself (and the spintax one-template-many-variants story again). |
 
 ## Naming (open decision — see TODO)
 
@@ -235,7 +304,13 @@ No `NPM_TOKEN` secret ever enters the repository. (Octagons ADR 003, adopted.)
 
 ## Acceptance criteria for v0.1.0
 
-- ≤ 3.5 KB gzipped (`npm run size`).
+- ≤ 4.0 KB gzipped (`npm run size`) — raised from octagons' 3.5 to fund the
+  auto-palette (~0.6–0.8 KB); if the total lands under 3.5 anyway, say so proudly.
+- `Hexagons.palette()` is pure and deterministic: same hex ⇒ identical output, both
+  themes; snapshot-tested. Derived stops clear the edge-visibility floors vs
+  `background`; achromatic seeds (chroma < 12) produce a neutral palette, never an
+  invented hue.
+- Explicit colour options always win over `brand` derivation, including via `set()`.
 - Steady ~60 fps, one full-screen instance, one clean tab (page's own meter).
 - Two runs with the same seed: byte-identical canvases after 300 frames.
 - Loop verifiably pauses when scrolled out of view and on a hidden tab.
@@ -250,3 +325,6 @@ No `NPM_TOKEN` secret ever enters the repository. (Octagons ADR 003, adopted.)
 - `../.agents/REGISTRY.md` — why the environment is set up as it is
 - `W:\Projects\octagons-lite` — the sibling; its `docs/` and `AGENTS.md` are the
   reference implementation of this spec's engine
+- `W:\Projects\casino-platform\packages\core\utils\token-engine\` — the auto-palette
+  reference (LCH derivation, contrast guards, `mapToTrigonsConfig` precedent);
+  progenitor: `W:\Projects\dark-theme-generator`
