@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>hexagons — verify harness</title>
+<style>
+	body { background: #101318; color: #e8ecf5; font: 14px/1.6 ui-monospace, monospace; padding: 24px; }
+	h1 { font-size: 18px; }
+	li { list-style: none; margin: 3px 0; }
+	.pass::before { content: "PASS  "; color: #18C27A; }
+	.fail::before { content: "FAIL  "; color: #FF4F6E; }
+	.fail { color: #FF4F6E; }
+	#sum { margin-top: 14px; font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>hexagons — repeatable verification harness (no dependencies)</h1>
+<p>Serve the repo root (<code>python -m http.server</code>) and open
+<code>/test/verify.html</code>. Every check is step()-driven, so it runs even in a
+background tab. Regression checks are named after the review finding they pin.</p>
+<ul id="out"></ul>
+<div id="sum">running…</div>
+
+<script src="../hexagons.js"></script>
+<script>
+(function () {
+	'use strict';
+
+	// ── helpers ─────────────────────────────────────────────
+	function inst(opts, w, h) {
+		var d = document.createElement('div');
+		d.style.cssText = 'width:' + (w || 400) + 'px;height:' + (h || 300) + 'px;position:fixed;left:-2000px;top:0';
+		document.body.appendChild(d);
+		var hx = Hexagons.init(d, opts);
+		return { h: hx, d: d, done: function () { hx.destroy(); d.remove(); } };
+	}
+	function hashCanvas(hx) {
+		var c = hx.canvas, px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+		var s = 0;
+		for (var i = 0; i < px.length; i += 7) s = (s * 31 + px[i]) >>> 0;
+		return s;
+	}
+	function pixel(hx, fx, fy) {
+		var c = hx.canvas;
+		var p = c.getContext('2d').getImageData(Math.round(c.width * fx), Math.round(c.height * fy), 1, 1).data;
+		return [p[0], p[1], p[2], p[3]];
+	}
+	function steps(hx, n, dt) { for (var i = 0; i < n; i++) hx.step(dt); }
+	function lum(hex) {
+		var n = parseInt(hex.slice(1), 16);
+		function ch(v) { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+		return 0.2126 * ch(n >> 16 & 255) + 0.7152 * ch(n >> 8 & 255) + 0.0722 * ch(n & 255);
+	}
+	function contrast(a, b) {
+		var x = lum(a), y = lum(b);
+		return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+	}
+	function assert(cond, msg) { if (!cond) throw new Error(msg); }
+
+	// ── checks ──────────────────────────────────────────────
+	var checks = [];
+	function check(name, fn) { checks.push({ name: name, fn: fn }); }
+
+	check('palette: pure (double call identical, 3 brands x 2 themes)', function () {
+		var brands = [['#00abf3', '#d6af3c', '#a91455'], '#7c5cff', '#e0356b'];
+		brands.forEach(function (b) {
+			['dark', 'light'].forEach(function (th) {
+				assert(JSON.stringify(Hexagons.palette(b, { theme: th })) ===
+					JSON.stringify(Hexagons.palette(b, { theme: th })), 'differs for ' + b + '/' + th);
+			});
+		});
+	});
+
+	check('palette: contrast floors (36 hues + extremes, both themes)', function () {
+		var seeds = ['#ffffff', '#000000', '#808080'];
+		for (var hdeg = 0; hdeg < 360; hdeg += 10) {
+			var c = 'hsl(' + hdeg + ',80%,50%)';
+			var el = document.createElement('div'); el.style.color = c; document.body.appendChild(el);
+			var m = getComputedStyle(el).color.match(/\d+/g); el.remove();
+			seeds.push('#' + ((1 << 24) + (+m[0] << 16) + (+m[1] << 8) + +m[2]).toString(16).slice(1));
+		}
+		var floors = [1.5, 2.5, 5];
+		seeds.forEach(function (s) {
+			['dark', 'light'].forEach(function (th) {
+				var p = Hexagons.palette(s, { theme: th });
+				p.colors.forEach(function (st, i) {
+					assert(contrast(st, p.background) >= floors[i] - 0.01,
+						s + '/' + th + ' stop' + i + ' ' + contrast(st, p.background).toFixed(2));
+				});
+				assert(contrast(p.hot, p.background) >= 6.99, s + '/' + th + ' hot');
+				assert(contrast(p.accent, p.background) >= 2.99, s + '/' + th + ' accent');
+			});
+		});
+	});
+
+	check('palette: achromatic seeds stay neutral (no invented hue)', function () {
+		['#808080', '#111111', '#fefefe'].forEach(function (s) {
+			var p = Hexagons.palette(s);
+			[].concat(p.colors, [p.accent, p.hot, p.background, p.halo]).forEach(function (hx) {
+				var n = parseInt(hx.slice(1), 16), r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255;
+				assert(Math.max(r, g, b) - Math.min(r, g, b) <= 2, s + ' -> ' + hx);
+			});
+		});
+	});
+
+	check('fill: seeded entrance deterministic (crystal + cells)', function () {
+		['crystal', 'cells'].forEach(function (f) {
+			function run() {
+				var a = inst({ mode: 'fill', facets: f, seed: 7, autoplay: false });
+				a.h.animateIn({ effect: 'spin', direction: 'random' }); a.h.stop();
+				steps(a.h, 60, 1 / 30);
+				var s = hashCanvas(a.h); a.done(); return s;
+			}
+			assert(run() === run(), f + ' differs across runs');
+		});
+	});
+
+	check('fill: independent of field `count` (review Critical 2)', function () {
+		function run(count) {
+			var a = inst({ mode: 'fill', seed: 7, count: count, autoplay: false });
+			a.h.animateIn({ effect: 'scale', direction: 'random' }); a.h.stop();
+			steps(a.h, 40, 1 / 30);
+			var s = hashCanvas(a.h); a.done(); return s;
+		}
+		assert(run(110) === run(111), 'count changed the fill animation');
+	});
+
+	check('field: set({seed}) equals fresh init with that seed', function () {
+		function fresh() {
+			var a = inst({ mode: 'field', seed: 2, autoplay: false, parallax: false });
+			steps(a.h, 120, 1 / 60);
+			var s = hashCanvas(a.h); a.done(); return s;
+		}
+		function reseeded() {
+			var a = inst({ mode: 'field', seed: 1, autoplay: false, parallax: false });
+			a.h.set({ seed: 2 });
+			steps(a.h, 120, 1 / 60);
+			var s = hashCanvas(a.h); a.done(); return s;
+		}
+		assert(fresh() === reseeded(), 'reseed diverged from fresh init');
+	});
+
+	check('fill: no globalAlpha leak onto settled facets (review Critical 1)', function () {
+		function shot(t) {
+			var a = inst({ mode: 'fill', seed: 3, autoplay: false, halo: null, vignette: 0, background: '#000000' });
+			a.h.animateIn({ effect: 'fade', direction: 'bottom', duration: 1000, stagger: 0.6, easing: 'linear' });
+			a.h.stop();
+			steps(a.h, Math.round(t * 30), 1 / 30);
+			var p = pixel(a.h, 0.5, 0.95); a.done(); return p;
+		}
+		// at t=0.5 the bottom facets are settled while upper ones are partial
+		// and drawn earlier in iteration order — the leak scenario
+		assert(shot(0.5).join() === shot(5).join(), 'settled facet drawn at neighbour alpha');
+	});
+
+	check('fill: resize recentres, never re-randomises', function () {
+		var a = inst({ mode: 'fill', animation: null, autoplay: false }, 500, 400);
+		a.h.step(0);
+		a.d.style.width = '620px'; a.h.resize(); a.h.step(0);
+		var sA = hashCanvas(a.h); a.done();
+		var b = inst({ mode: 'fill', animation: null, autoplay: false }, 620, 400);
+		b.h.step(0);
+		var sB = hashCanvas(b.h); b.done();
+		assert(sA === sB, 'resized canvas differs from fresh init at that size');
+	});
+
+	check('fill: resize mid-entrance keeps the wave (review Warning 3)', function () {
+		var a = inst({ mode: 'fill', autoplay: false, halo: null, vignette: 0, background: '#000000' }, 500, 400);
+		a.h.animateIn({ effect: 'fade', direction: 'top', duration: 2000, stagger: 0.8, easing: 'linear' });
+		a.h.stop();
+		steps(a.h, 18, 1 / 30);            // 0.6 s in: top settled, bottom dark
+		a.d.style.width = '540px'; a.h.resize();
+		a.h.step(1 / 30);
+		var top = pixel(a.h, 0.5, 0.06), bottom = pixel(a.h, 0.5, 0.94);
+		a.done();
+		var lt = top[0] + top[1] + top[2], lb = bottom[0] + bottom[1] + bottom[2];
+		assert(lt > lb + 10, 'wave flattened after resize (top ' + lt + ' vs bottom ' + lb + ')');
+	});
+
+	check('vignette: effective 0 on transparent background, alpha stays clean', function () {
+		// constructive: default-vignette canvas must equal explicit vignette:0 —
+		// then the vignette provably contributed nothing to the alpha channel
+		function shot(extra) {
+			var o = { mode: 'field', background: null, seed: 5, autoplay: false, parallax: false };
+			for (var k in extra) o[k] = extra[k];
+			var a = inst(o);
+			steps(a.h, 30, 1 / 30);
+			var s = hashCanvas(a.h), eff = a.h.get().vignette;
+			a.done(); return { s: s, eff: eff };
+		}
+		var def = shot({}), zero = shot({ vignette: 0 });
+		var effTransparent = def.eff;
+		var b = inst({ autoplay: false });
+		var effDefault = b.h.get().vignette;
+		b.h.set({ background: null });
+		var effAfterSet = b.h.get().vignette;
+		b.h.set({ vignette: 0.3, background: '#101010' });
+		b.h.set({ background: null });
+		var effPinned = b.h.get().vignette;
+		b.done();
+		assert(def.s === zero.s, 'default vignette altered a transparent canvas (baked into alpha)');
+		assert(effTransparent === 0, 'effective vignette ' + effTransparent + ' on transparent');
+		assert(effDefault === 0.45, 'default effective vignette ' + effDefault);
+		assert(effAfterSet === 0, 'set({background:null}) left vignette ' + effAfterSet);
+		assert(effPinned === 0.3, 'pinned vignette lost on transparency: ' + effPinned);
+	});
+
+	check('pins: truthful lifecycle (null unpins colours, pins background)', function () {
+		var a = inst({ autoplay: false, accent: '#ff0000' });
+		assert(a.h.get().pins.join() === 'accent', 'init pin');
+		a.h.set({ accent: null });
+		assert(a.h.get().pins.length === 0, 'null should unpin accent');
+		a.h.set({ background: null });
+		var g = a.h.get();
+		assert(g.pins.join() === 'background' && g.background === null && g.vignette === 0, 'bg pin');
+		a.done();
+	});
+
+	check('get(): animation snapshot resolves defaults (review Warning 4)', function () {
+		var a = inst({ mode: 'fill', autoplay: false });
+		var an = a.h.get().animation;
+		a.done();
+		assert(an && an.effect === 'scale' && an.direction === 'top' &&
+			an.duration === 1500 && an.stagger === 0.6 && an.easing === 'ease-out',
+			'got ' + JSON.stringify(an));
+	});
+
+	// ── runner ──────────────────────────────────────────────
+	var out = document.getElementById('out'), passed = 0;
+	checks.forEach(function (c) {
+		var li = document.createElement('li');
+		try {
+			c.fn();
+			li.className = 'pass'; li.textContent = c.name; passed++;
+		} catch (e) {
+			li.className = 'fail'; li.textContent = c.name + ' — ' + e.message;
+		}
+		out.appendChild(li);
+	});
+	var sum = document.getElementById('sum');
+	sum.textContent = passed + ' / ' + checks.length + (passed === checks.length ? ' — ALL GREEN' : ' — FAILURES ABOVE');
+	sum.style.color = passed === checks.length ? '#18C27A' : '#FF4F6E';
+	document.title = (passed === checks.length ? 'PASS' : 'FAIL') + ' — hexagons verify';
+})();
+</script>
+</body>
+</html>

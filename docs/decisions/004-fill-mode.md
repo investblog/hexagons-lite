@@ -56,3 +56,10 @@ shade direction from the jittered centre's displacement against the ideal
 lattice point), which at `chaos: 0` degenerates into the strict-comb quantised
 gradient — so all three looks from the original fork are reachable. Crystal
 remains the default per the user's first choice.
+
+**Correction (same day, external review):** "entrance randomness routes through
+the seeded RNG" turned out to couple the fill to the field's `count` (the field
+seeds that stream proportionally to it). Spin angles and random-direction delays
+are now hash-derived from piece centroids — fill determinism no longer depends
+on `seed` at all, which is strictly stronger than what this ADR originally
+promised.

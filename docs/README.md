@@ -130,8 +130,13 @@ Mechanics (trigons', with our discipline):
   "sleep when there is nothing to draw" extends to fill; `resize()`/`set()`
   repaint one static frame without replaying.
 - **Determinism.** The entrance clock is the shared `t` accumulator, so
-  `step(dt)` drives fill too; spin angles and `direction: 'random'` delays come
-  from the seeded RNG. Same seed + same dt sequence ⇒ identical fill frames.
+  `step(dt)` drives fill too. Spin angles and `direction: 'random'` delays are
+  **hash-derived from piece centroids** — NOT drawn from the shared RNG: the
+  field seeds that stream proportionally to `count`, and an early revision that
+  drew from it made `count: 111` change the fill animation under the same seed
+  (external review, Critical). Consequently fill is deterministic by
+  construction, independent of `seed`, `count`, and call order; same dt
+  sequence ⇒ identical fill frames, always.
 
 **Grain (`facets`).** The fork the user was offered had three looks; the two
 survivors both ship, selected by `facets`:
@@ -405,14 +410,17 @@ flat config). License MIT © 301ST.
 
 **Verification model (user decision 2026-08-09): no test-runner dependency.** An
 earlier revision planned `playwright` as a devDependency; the user cut it. The
-repo stays at `eslint` + `terser` only, and correctness is verified by the
-documented in-browser check run — the demo plus the console assertions listed in
-the acceptance criteria (seed determinism over 300 frames, corner alpha on
-transparent canvas, `palette()` purity, pin lifecycle via `get()`) — executed
-independently by the **reviewer agent** (`.agents/agents/reviewer.md`, the
-proof-loop's review side) rather than by CI automation. If a regression ever
-ships that this run would have caught, revisit runner-based tests with that
-incident as the justification.
+repo stays at `eslint` + `terser` only. Correctness is verified by
+**`test/verify.html`** — a dependency-free, step()-driven harness (runs even in
+a background tab): serve the repo root and open it; the page reports PASS/FAIL
+per check and ALL GREEN in the title. It pins the palette floors, fill/field
+determinism, the `count`-independence and alpha-leak regressions (both found by
+external review — the earlier ad-hoc console checks missed them, which is
+exactly why the harness now lives in the repo), resize stability, the mid-
+entrance resize wave, the transparent-canvas vignette rule, pin lifecycle, and
+the `get()` snapshot contract. The **reviewer agent**
+(`.agents/agents/reviewer.md`) runs it as the proof-loop's independent pass.
+New invariants belong in the harness, not in one-off console runs.
 
 **Trusted Publisher (OIDC) is configured BEFORE the first release** — octagons
 shipped 0.1.0–0.1.2 without provenance and the cleanup is still on its TODO three

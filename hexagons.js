@@ -253,7 +253,7 @@
 		applyPalette();
 
 		var size = opts.size || 90;                // px: width across flats (the one unit)
-		var count = opts.count || 110;             // field only
+		var count = opts.count == null ? 110 : opts.count;   // field only; 0 is legal (empty field)
 		var speed = opts.speed == null ? 1 : opts.speed;
 		var weight = opts.weight == null ? 1 : opts.weight;
 		var glow = opts.glow !== false;
@@ -394,7 +394,10 @@
 				tris.push({
 					p: pts, mx: mx, my: my, d: 0,
 					c: 'rgb(' + clamp255(base[0] * sh) + ',' + clamp255(base[1] * sh) + ',' + clamp255(base[2] * sh) + ')',
-					ang: (rnd() - 0.5) * Math.PI
+					// hash of the centroid, NOT the shared RNG: the field seeds
+					// that stream proportionally to `count`, so drawing from it
+					// here coupled the fill to a field option (found in review)
+					ang: (hash(Math.round(mx), Math.round(my), 9) - 0.5) * Math.PI
 				});
 			}
 			// crystal facet: normal from the jittered triangle edges (trigons)
@@ -428,7 +431,7 @@
 					: dir === 'left' ? tr.mx / W
 						: dir === 'right' ? 1 - tr.mx / W
 							: dir === 'center' ? Math.sqrt((tr.mx - hw) * (tr.mx - hw) + (tr.my - hh) * (tr.my - hh)) / dmax
-								: dir === 'random' ? rnd()
+								: dir === 'random' ? hash(Math.round(tr.mx), Math.round(tr.my), 11)
 									: tr.my / H;   // top
 			}
 		}
@@ -503,7 +506,10 @@
 				var v = anim.ez(p);
 				if (anim.out) v = 1 - v;
 				if (v < 0.005) continue;
-				if (v === 1) { tpath(tr); continue; }
+				// reset alpha explicitly: tpathT of a PREVIOUS partial facet left
+				// its v on the context, and tpath alone would inherit it (found
+				// in review: settled facets rendered at the neighbour's alpha)
+				if (v === 1) { ctx.globalAlpha = 1; tpath(tr); continue; }
 				var sc = 1, rot = 0, tx = 0, ty = 0;
 				if (anim.fx === 'scale') { sc = v; rot = tr.ang * (1 - v); }
 				else if (anim.fx === 'spin') { sc = v; rot = tr.ang * 4 * (1 - v); }
@@ -679,7 +685,11 @@
 			H = canvas.height = Math.round(h * dpr);
 			dropCaches();
 			if (mode === 'hive') buildHive();
-			else if (mode === 'fill') { buildFill(); repaint(); }
+			else if (mode === 'fill') {
+				buildFill();
+				if (anim) setDelays(anim.dir);   // keep the wave through a resize
+				repaint();
+			}
 		}
 
 		// One frame, advanced by exactly dt — split out of tick() so a renderer
@@ -764,9 +774,13 @@
 					glow: glow, sweep: sweep, bond: bond, orientation: orientation,
 					inset: inset, nesting: nesting, parallax: parallax,
 					chaos: chaos, depth: depth, facets: facets,
+					// effective values, defaults resolved — the snapshot contract
 					animation: animation ? {
-						effect: animation.effect, direction: animation.direction,
-						duration: animation.duration, stagger: animation.stagger, easing: animation.easing
+						effect: animation.effect || 'scale',
+						direction: animation.direction || 'top',
+						duration: animation.duration == null ? 1500 : animation.duration,
+						stagger: animation.stagger == null ? 0.6 : animation.stagger,
+						easing: animation.easing || 'ease-out'
 					} : null,
 					animating: !!anim,
 					vignette: effVignette(), pins: Object.keys(pins).concat(vigPin ? ['vignette'] : [])

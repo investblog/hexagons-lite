@@ -32,5 +32,13 @@ First implementation of the v0.1 spec (`docs/README.md`):
   jittered centre's displacement — giving the organic comb, and the strict
   quantised-gradient comb at `chaos: 0`. All three looks from the original
   design fork are reachable.
-- Size: 6825 B min+gzip via the canonical Node-zlib `npm run size`
+- Review fixes (fill entrance): settled facets no longer inherit the previous
+  partial facet's `globalAlpha`; spin angles and `direction: 'random'` delays
+  are hash-derived from centroids instead of the shared RNG (they were coupled
+  to the field's `count`); a container resize mid-entrance keeps the stagger
+  wave; `get().animation` resolves defaults; `count: 0` is a legal empty field.
+- `test/verify.html` — dependency-free, step()-driven verification harness
+  (12 checks incl. regression pins for both review Criticals); the repo's
+  canonical proof-loop artifact, run by the reviewer agent.
+- Size: 6868 B min+gzip via the canonical Node-zlib `npm run size`
   (ceiling 6.75 KB = 6912 B, measured — see docs/README.md acceptance).

@@ -76,6 +76,17 @@ verbatim here because the engine is a port. New lessons of hexagons' own — app
   completed *inside* `frame()`, `sync()` cancelled a handle that had already
   fired and `tick` immediately queued a fresh one — a zombie loop that survived
   every later stop. `if (running)` before the re-queue is the whole fix.
+- **Never feed a mode from another mode's RNG stream.** Fill facet angles drew
+  from the shared mulberry32 stream *after* the field had consumed a
+  count-proportional prefix of it — so `count: 111` changed the fill animation
+  under the same seed, and `set({seed})` diverged from a fresh init. Randomness
+  that must be stable belongs to `hash(position)`, not to a shared stream whose
+  cursor depends on unrelated options. (External review caught it; the ad-hoc
+  console checks did not — which is why `test/verify.html` now pins it.)
+- **A fast-path draw must reset every context state the slow path sets.** The
+  `v === 1` facet path skipped `globalAlpha`, inheriting the previous partial
+  facet's transparency. If one branch sets context state, every sibling branch
+  either sets it too or the loop resets it first.
 - **Gzip beats clever — trim only by measurement.** Deduplicating the vertex table
   into a shared function grew the gzipped output by 20 B, and replacing unrolled
   derivation triples with loops grew it by 17 B more: gzip compresses repetition
