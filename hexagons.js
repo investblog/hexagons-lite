@@ -215,6 +215,13 @@
 		// A colour option is pinned the moment the caller passes it; pinned
 		// options survive set({brand})/set({theme}). 'auto' unpins.
 		var pins = {};
+		// null is a meaningful pin only for background/halo (transparent/off);
+		// for colors/accent/hot it would silently behave as unpinned while
+		// get().pins reported it pinned — so normalise it to 'unpin' instead
+		function setPin(key, v) {
+			if (v === 'auto' || (v === null && key !== 'background' && key !== 'halo')) delete pins[key];
+			else pins[key] = v;
+		}
 		var colors, accent, hot, bg, halo;
 		function applyPalette() {
 			var d = derive(brand, theme);
@@ -227,7 +234,7 @@
 				? (pins.halo === null ? null : parseColor(pins.halo)) : d.halo;
 		}
 		for (var pk = 0; pk < COLOR_KEYS.length; pk++) {
-			if (COLOR_KEYS[pk] in opts) pins[COLOR_KEYS[pk]] = opts[COLOR_KEYS[pk]];
+			if (COLOR_KEYS[pk] in opts) setPin(COLOR_KEYS[pk], opts[COLOR_KEYS[pk]]);
 		}
 		applyPalette();
 
@@ -551,7 +558,7 @@
 			// listed — makes set() observable and lets users read what brand made.
 			get: function () {
 				return {
-					mode: mode, brand: brand, theme: theme,
+					mode: mode, brand: typeof brand === 'string' ? brand : brand.slice(), theme: theme,
 					colors: colors.map(toHex), accent: toHex(accent), hot: toHex(hot),
 					background: bg ? toHex(bg) : null, halo: halo ? toHex(halo) : null,
 					size: size, count: count, seed: seed, speed: speed, weight: weight,
@@ -566,9 +573,7 @@
 					if (!o.hasOwnProperty(key)) continue;
 					var v = o[key];
 					if (COLOR_KEYS.indexOf(key) >= 0) {
-						// 'auto' hands the option back to the auto-palette;
-						// anything else (null included) pins it
-						if (v === 'auto') delete pins[key]; else pins[key] = v;
+						setPin(key, v);
 						repalette = true;
 						continue;
 					}

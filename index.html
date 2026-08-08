@@ -39,6 +39,8 @@
 	.row { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
 	.row label { flex: 0 0 82px; color: var(--muted); }
 	.row input[type=range] { flex: 1; accent-color: var(--accent); }
+	.row input[type=range]:disabled { opacity: 0.35; }
+	.row.off label, .row.off output { opacity: 0.45; }
 	.row output { flex: 0 0 38px; text-align: right; font-variant-numeric: tabular-nums; }
 	.row select, .row input[type=number] {
 		flex: 1; background: transparent; color: var(--text);
@@ -128,6 +130,9 @@
 				<span class="chk"><input type="checkbox" data-k="nesting" checked>nesting</span>
 				<span class="chk"><input type="checkbox" data-k="parallax" checked>parallax</span>
 			</div>
+			<div class="row" style="margin-top:10px; justify-content:center; color:var(--muted)">
+				Made in <a href="https://301.st">301</a>&nbsp;·&nbsp;for <a href="https://spintax.net">spintax.net</a>
+			</div>
 		</div>
 	</div>
 </section>
@@ -197,6 +202,15 @@ Hexagons.pattern({ size: 24, color: '#d6af3c', opacity: 0.15 });</pre>
 
 	// controls -> set()
 	var panel = document.getElementById('panel');
+	// bond > 0 disables inset (spec v0.1 exclusion) — reflect it, don't be silent
+	function syncInset() {
+		var bondEl = panel.querySelector('[data-k=bond]');
+		var insetEl = panel.querySelector('[data-k=inset]');
+		var off = +bondEl.value > 0;
+		insetEl.disabled = off;
+		insetEl.closest('.row').className = off ? 'row off' : 'row';
+		insetEl.title = off ? 'disabled while bond > 0 (v0.1 exclusion)' : '';
+	}
 	panel.addEventListener('input', function (e) {
 		var k = e.target.getAttribute('data-k');
 		if (!k) return;
@@ -205,7 +219,9 @@ Hexagons.pattern({ size: 24, color: '#d6af3c', opacity: 0.15 });</pre>
 		else if (e.target.type === 'range') { v = +e.target.value; e.target.nextElementSibling.value = v; }
 		else v = e.target.value;
 		hero.set((function (o) { o[k] = v; return o; })({}));
+		if (k === 'bond') syncInset();
 	});
+	syncInset();
 	document.getElementById('theme').addEventListener('input', function () {
 		document.body.className = theme() === 'light' ? 'light' : '';
 		applyBrand();

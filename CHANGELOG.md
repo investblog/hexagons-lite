@@ -20,4 +20,5 @@ First implementation of the v0.1 spec (`docs/README.md`):
 - `get()` — effective options snapshot with resolved derived colours and pins.
 - Effective `vignette: 0` on a transparent canvas (removes the octagons footgun);
   verified: corner alpha stays 0 with `background: null`.
-- Size: 5232 B min+gzip (ceiling 5.5 KB, measured — see docs/TODO.md).
+- Size: 5315 B min+gzip via the canonical Node-zlib `npm run size`
+  (ceiling 5.5 KB = 5632 B, measured — see docs/TODO.md).

@@ -165,7 +165,7 @@ too heavy for a 4 KB budget. The hexagons subset:
 
    | Token | Dark (default) | Light |
    |---|---|---|
-   | `background` | `L 6, C min(0.2·C, 10), H` | `L 97, C 3, H` |
+   | `background` | `L 6, C min(0.2·C, 10), H` | `L 97, C 3, H` *(C 0 for achromatic seeds — rule 3)* |
    | `halo` | `L 12, C min(0.3·C, 15), H` | `L 92, C min(0.2·C, 8), H` |
    | `colors[0..2]` | `L 32/58/82`, `C ×0.9/1.0/0.55`, `H` | `L 72/52/32` (ramp inverted), same chroma scaling |
    | `accent` | `L 70, C, H+40°` *(or `brand[1]`'s C/H)* | `L 45, C, H+40°` *(or `brand[1]`'s C/H)* |
@@ -236,8 +236,8 @@ user of one library can drive the other without relearning:
 | `nesting` | `true` | field | Concentric inner rings on some cells |
 | `parallax` | `true` | field | Pointer-driven drift |
 | `vignette` | `0.45`* | both | Edge darkening; `0` disables. ***Effective default is `0` when `background: null`** — the vignette bakes into the alpha channel on a transparent canvas, so unless the caller pins `vignette` explicitly, transparency switches it off automatically (resolving the octagons footgun instead of documenting it) |
-| `maxDpr` | `2` | both | Device-pixel-ratio ceiling |
-| `autoplay` | `true` | both | Start immediately |
+| `maxDpr` | `2` | both | Device-pixel-ratio ceiling. **Init-only**: baked into all geometry, not settable via `set()` and not reported by `get()` |
+| `autoplay` | `true` | both | Start immediately. **Init-only**: a moment, not state — use `start()`/`stop()` afterwards |
 
 Dropped from octagons: `nodes`, `nodeSize` (no gaps to decorate — see Inset).
 
@@ -379,7 +379,8 @@ No `NPM_TOKEN` secret ever enters the repository. (Octagons ADR 003, adopted.)
   pinned test browser at fixed viewport/DPR (per-environment claim — see
   Determinism).
 - Loop verifiably pauses when scrolled out of view and on a hidden tab.
-- `set()` round-trips every option in the table above, including `seed` — verified
+- `set()` round-trips every option in the table above except the two marked
+  init-only (`maxDpr`, `autoplay`), including `seed` — verified
   observably through `get()` plus a frame-hash change/no-change assertion (the
   external review is right that "round-trips" is untestable without a getter).
 - `bond > 0` cleanly disables `inset` (v0.1 exclusion), and the demo reflects it.

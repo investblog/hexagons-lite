@@ -11,7 +11,8 @@
   "scripts": {
     "build": "terser hexagons.js --compress --mangle -o hexagons.min.js",
     "size": "node scripts/size.mjs",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "prepack": "npm run build"
   },
   "keywords": [
     "hexagon",
