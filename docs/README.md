@@ -393,7 +393,8 @@ Package: **`hexagons-lite`** (verified free on npm, E404 2026-08-08). npm
 `hexagons` is squatted (a 0.0.0 stub), `honeycombs` and `hexes` are taken; the
 `-lite` suffix is house style (the octagons project folder carries it too) and
 reads honestly for a ~4 KB library. Global stays `Hexagons`, source file
-`hexagons.js`, repo `investblog/hexagons`, demo on GitHub Pages. A dispute for the
+`hexagons.js`, repo `investblog/hexagons-lite` (house style: repo = package name,
+like `trigons-lite`), demo on GitHub Pages. A dispute for the
 squatted `hexagons` via npm support remains possible later but does not block v0.1.
 
 ## Layout & release engineering

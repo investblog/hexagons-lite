@@ -26,8 +26,10 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
   `['#00abf3', '#d6af3c', '#a91455']` (blue/gold/magenta), confirmed by both the
   logo SVG and spintax.net's `theme.css` header comment. `brand` extended to
   hex | hex[] (ADR 002 addendum).
-- **Create the GitHub repo** (`investblog/hexagons` — verify the name is free) and
-  configure **npm Trusted Publisher BEFORE the first tag**. Order: repo → trusted
+- ~~Create the GitHub repo~~ — **done 2026-08-09**: `investblog/hexagons-lite`
+  (repo = package name, house style), Pages legacy/main/root like octagons and
+  trigons-lite, live demo at https://investblog.github.io/hexagons-lite/.
+- Configure **npm Trusted Publisher BEFORE the first tag**. Order: trusted
   publisher → `release.yml` → tag. No `NPM_TOKEN` secret, ever — octagons' three
   provenance-less releases are the incident this rule comes from.
 

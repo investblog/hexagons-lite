@@ -21,7 +21,9 @@ confirmed the availability picture.
 `octagons-lite`) and reads honestly for a few-KB zero-dependency library.
 
 Unchanged by the package name: global `Hexagons`, source `hexagons.js` /
-`hexagons.min.js`, repo `investblog/hexagons`, GitHub Pages demo.
+`hexagons.min.js`, GitHub Pages demo. Repo: `investblog/hexagons-lite` —
+corrected at publish time from the draft's `investblog/hexagons` to match the
+house style (repo = package name, as `trigons-lite`).
 
 ## Consequences
 

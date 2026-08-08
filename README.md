@@ -12,6 +12,8 @@ knobs that span the whole variant space: **`seed`** spins the geometry,
 [![npm](https://img.shields.io/npm/v/hexagons-lite.svg)](https://www.npmjs.com/package/hexagons-lite)
 [![license](https://img.shields.io/npm/l/hexagons-lite.svg)](LICENSE)
 
+**[Live demo →](https://investblog.github.io/hexagons-lite/)**
+
 ## Install
 
 ```sh

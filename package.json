@@ -36,13 +36,13 @@
   ],
   "author": "301st (https://301.st)",
   "license": "MIT",
-  "homepage": "https://github.com/investblog/hexagons#readme",
+  "homepage": "https://github.com/investblog/hexagons-lite#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/investblog/hexagons.git"
+    "url": "git+https://github.com/investblog/hexagons-lite.git"
   },
   "bugs": {
-    "url": "https://github.com/investblog/hexagons/issues"
+    "url": "https://github.com/investblog/hexagons-lite/issues"
   },
   "devDependencies": {
     "eslint": "^9.39.4",
