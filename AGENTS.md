@@ -66,6 +66,16 @@ verbatim here because the engine is a port. New lessons of hexagons' own — app
   than no reason: it survives review by sounding deliberate.
 
 ### Project-specific — hexagons' own (earned here)
+- **Per-triangle canvas transforms are 50x the cost of transformed vertices.**
+  The fill entrance at ~1800 facets with save/translate/rotate/scale/restore
+  per facet measured 140 ms/frame (7 fps); computing the same transform on the
+  vertices in JS (six multiplies each) and pathing directly measured 2.7 ms.
+  Trigons gets away with ctx transforms only because it has ~200 triangles.
+- **A loop that can be parked from inside its own frame must guard its
+  reschedule.** `tick()` unconditionally re-queued rAF; when the fill entrance
+  completed *inside* `frame()`, `sync()` cancelled a handle that had already
+  fired and `tick` immediately queued a fresh one — a zombie loop that survived
+  every later stop. `if (running)` before the re-queue is the whole fix.
 - **Gzip beats clever — trim only by measurement.** Deduplicating the vertex table
   into a shared function grew the gzipped output by 20 B, and replacing unrolled
   derivation triples with loops grew it by 17 B more: gzip compresses repetition

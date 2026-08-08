@@ -20,5 +20,12 @@ First implementation of the v0.1 spec (`docs/README.md`):
 - `get()` — effective options snapshot with resolved derived colours and pins.
 - Effective `vignette: 0` on a transparent canvas (removes the octagons footgun);
   verified: corner alpha stays 0 with `background: null`.
-- Size: 5315 B min+gzip via the canonical Node-zlib `npm run size`
-  (ceiling 5.5 KB = 5632 B, measured — see docs/TODO.md).
+- `fill` mode (ADR 004) — the crumpled crystal: filled faceted honeycomb (6
+  centre-fan facets per cell, diagonal brand ramp × pseudo-normal lighting,
+  trigons' pattern language) with staggered entrance/exit animation
+  (`fade|scale|spin|fly` × `top|bottom|left|right|center|random`), `chaos`,
+  `depth`, `animateIn()`/`animateOut()`. Static after the reveal — the rAF loop
+  verifiably parks. Hash-stable mesh (resize recentres, never re-randomises);
+  seeded entrances reproduce through `step(dt)`.
+- Size: 6728 B min+gzip via the canonical Node-zlib `npm run size`
+  (ceiling 6.75 KB = 6912 B, measured — see docs/README.md acceptance).

@@ -102,7 +102,7 @@
 		<div class="panel" id="panel">
 			<h2>Scene</h2>
 			<div class="row"><label>mode</label>
-				<select data-k="mode"><option>hive</option><option>field</option></select></div>
+				<select data-k="mode"><option>hive</option><option>field</option><option>fill</option></select></div>
 			<div class="row"><label>theme</label>
 				<select id="theme"><option>dark</option><option>light</option></select></div>
 			<h2>Brand → auto-palette</h2>
@@ -118,6 +118,16 @@
 			<div class="row"><label>sweep</label><input type="range" data-k="sweep" min="0" max="3" step="0.1" value="1"><output>1</output></div>
 			<div class="row"><label>orientation</label>
 				<select data-k="orientation"><option>pointy</option><option>flat</option></select></div>
+			<h2>Fill</h2>
+			<div class="row"><label>chaos</label><input type="range" data-k="chaos" min="0" max="1" step="0.05" value="0.5"><output>0.5</output></div>
+			<div class="row"><label>depth</label><input type="range" data-k="depth" min="0" max="0.6" step="0.05" value="0.4"><output>0.4</output></div>
+			<div class="row"><label>effect</label>
+				<select data-a="effect"><option>scale</option><option>fade</option><option>spin</option><option>fly</option></select></div>
+			<div class="row"><label>direction</label>
+				<select data-a="direction"><option>top</option><option>bottom</option><option>left</option><option>right</option><option>center</option><option>random</option></select></div>
+			<div class="row"><label>duration</label><input type="range" data-a="duration" min="400" max="4000" step="100" value="1500"><output>1500</output></div>
+			<div class="row"><label>stagger</label><input type="range" data-a="stagger" min="0" max="0.9" step="0.05" value="0.6"><output>0.6</output></div>
+			<div class="row"><label></label><button class="btn" id="replay">replay entrance</button></div>
 			<h2>Field</h2>
 			<div class="row"><label>count</label><input type="range" data-k="count" min="20" max="240" value="110"><output>110</output></div>
 			<div class="row"><label>seed</label><input type="number" id="seed" placeholder="random"><button class="btn" id="reseed">roll</button></div>
@@ -211,7 +221,20 @@ Hexagons.pattern({ size: 24, color: '#d6af3c', opacity: 0.15 });</pre>
 		insetEl.closest('.row').className = off ? 'row off' : 'row';
 		insetEl.title = off ? 'disabled while bond > 0 (v0.1 exclusion)' : '';
 	}
+	function animOpts() {
+		var o = {};
+		panel.querySelectorAll('[data-a]').forEach(function (el) {
+			o[el.getAttribute('data-a')] = el.type === 'range' ? +el.value : el.value;
+		});
+		return o;
+	}
 	panel.addEventListener('input', function (e) {
+		var a = e.target.getAttribute('data-a');
+		if (a) {
+			if (e.target.type === 'range') e.target.nextElementSibling.value = e.target.value;
+			hero.set({ animation: animOpts() });
+			return;
+		}
 		var k = e.target.getAttribute('data-k');
 		if (!k) return;
 		var v;
@@ -222,9 +245,18 @@ Hexagons.pattern({ size: 24, color: '#d6af3c', opacity: 0.15 });</pre>
 		if (k === 'bond') syncInset();
 	});
 	syncInset();
+	document.getElementById('replay').addEventListener('click', function () {
+		hero.animateIn(animOpts());
+	});
 	document.getElementById('theme').addEventListener('input', function () {
 		document.body.className = theme() === 'light' ? 'light' : '';
-		applyBrand();
+		if (hero.get().mode === 'fill') {
+			// the casino-platform trick: dissolve, retheme, reassemble
+			hero.animateOut({ duration: 700, easing: 'ease-in' });
+			setTimeout(function () { applyBrand(); hero.animateIn(animOpts()); }, 750);
+		} else {
+			applyBrand();
+		}
 	});
 	document.getElementById('b0').addEventListener('input', applyBrand);
 	document.getElementById('b1').addEventListener('input', applyBrand);

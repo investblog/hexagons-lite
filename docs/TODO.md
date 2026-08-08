@@ -62,5 +62,11 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
   the differentiator feature. Needs Lloyd relaxation or a jittered-lattice Voronoi
   with deterministic per-cell jitter to stay seedable. v0.2 candidate.
 - Snap field rotation to 30° steps for a stricter, more brand-like field.
-- Pulsing "cell fill" highlight (one cell at a time breathes with the accent
-  colour) — would break the nothing-is-filled rule; decide deliberately if wanted.
+- ~~Pulsing "cell fill" highlight~~ — superseded by the full `fill` mode
+  (ADR 004, shipped 2026-08-09): the nothing-is-filled rule was deliberately
+  narrowed to the line-art modes.
+- Fill-mode shimmer: a slow light band re-tinting facets after the entrance
+  (trigons has none either; would need a re-tint pass — costs the static-sleep
+  covenant, so only behind an explicit option).
+- Fill × `bond`/`inset`: fused-cell facet groups. Same polygon-union problem as
+  line-art bond×inset; revisit after a real request.

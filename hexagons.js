@@ -65,6 +65,16 @@
 		var n = Math.sin(i * 127.1 + j * 311.7 + d * 74.7) * 43758.5453;
 		return n - Math.floor(n);
 	}
+	// cubic easings for the fill entrance (trigons' set)
+	var EASE = {
+		'linear': function (u) { return u; },
+		'ease-in': function (u) { return u * u * u; },
+		'ease-out': function (u) { return 1 - Math.pow(1 - u, 3); },
+		'ease-in-out': function (u) { return u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2; }
+	};
+	function mix(a, b, u) {
+		return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+	}
 	function makeRng(seed) {
 		if (seed == null) return Math.random;
 		var a = seed >>> 0;
@@ -208,7 +218,7 @@
 		el.appendChild(canvas);
 		var ctx = canvas.getContext('2d');
 
-		var mode = opts.mode === 'hive' ? 'hive' : 'field';
+		var mode = opts.mode === 'hive' || opts.mode === 'fill' ? opts.mode : 'field';
 		var brand = opts.brand == null ? DEFAULT_BRAND : opts.brand;
 		var theme = opts.theme === 'light' ? 'light' : 'dark';
 
@@ -222,10 +232,14 @@
 			if (v === 'auto' || (v === null && key !== 'background' && key !== 'halo')) delete pins[key];
 			else pins[key] = v;
 		}
-		var colors, accent, hot, bg, halo;
+		var colors, accent, hot, bg, halo, ramp;
 		function applyPalette() {
 			var d = derive(brand, theme);
 			colors = pins.colors ? pins.colors.map(parseColor) : d.colors;
+			// fill-mode ramp: a pinned `colors` is the ramp verbatim; otherwise a
+			// halo -> stop0 -> stop1 sweep from the palette. Measured on screen:
+			// a bg-anchored ramp (L6-L12) reads as flat black — facets need spread
+			ramp = pins.colors ? colors : [d.halo, d.colors[0], d.colors[1]];
 			accent = pins.accent != null ? parseColor(pins.accent) : d.accent;
 			hot = pins.hot != null ? parseColor(pins.hot) : d.hot;
 			bg = 'background' in pins
@@ -247,6 +261,10 @@
 		var bond = opts.bond == null ? 0 : opts.bond;            // hive only
 		var orientation = opts.orientation === 'flat' ? 'flat' : 'pointy';
 		var inset = opts.inset == null ? 0 : opts.inset;         // hive only; bond wins
+		var chaos = opts.chaos == null ? 0.5 : opts.chaos;       // fill only
+		var depth = opts.depth == null ? 0.4 : opts.depth;       // fill only
+		// undefined -> default entrance; explicit null -> appear instantly
+		var animation = 'animation' in opts ? opts.animation : {};
 		var nesting = opts.nesting !== false;      // field only
 		var parallax = opts.parallax !== false;    // field only
 		// vignette bakes into the alpha channel on a transparent canvas, so its
@@ -334,6 +352,166 @@
 				else edges.push({ x1: x1, y1: y1, x2: x2, y2: y2, mx: (x1 + x2) / 2, my: (y1 + y2) / 2 });
 			}
 		}
+
+		// ── fill mode: the crumpled crystal (ADR 004) ───────
+
+		var tris = [], anim = null, fillVisible = true;
+
+		function buildFill() {
+			tris = [];
+			if (!(W > 0) || !(H > 0)) return;
+			var flat = orientation === 'flat';
+			var GW = flat ? H : W, GH = flat ? W : H;
+			var s = size * dpr / SQRT3;
+			if (!(s > 0.5)) return;
+			var colW = SQRT3 * s, rowH = 1.5 * s;
+			var nC = Math.min(400, Math.ceil(GW / colW) + 3);
+			var nR = Math.min(400, Math.ceil(GH / rowH) + 3);
+			var ox = (GW - (nC - 1) * colW) / 2, oy = (GH - (nR - 1) * rowH) / 2;
+			var amp = size * dpr * chaos * 0.5;
+			// jitter is a pure function of the vertex's quantised GRID position
+			// (before the ox/oy centring shift): a vertex shared by three cells
+			// moves as one (watertight surface), and a resize only recentres the
+			// pattern instead of re-randomising it (trigons re-randomises)
+			function jv(x, y) {
+				var qx = Math.round(x - ox), qy = Math.round(y - oy);
+				return [x + (hash(qx, qy, 7) - 0.5) * amp, y + (hash(qx, qy, 8) - 0.5) * amp];
+			}
+			function addTri(a, b, c) {
+				var p1 = flat ? [a[1], a[0]] : a;
+				var p2 = flat ? [b[1], b[0]] : b;
+				var p3 = flat ? [c[1], c[0]] : c;
+				var mx = (p1[0] + p2[0] + p3[0]) / 3, my = (p1[1] + p2[1] + p3[1]) / 3;
+				var u = Math.max(0, Math.min(1, (mx / W + my / H) / 2));
+				var base = ramp.length > 2
+					? (u < 0.5 ? mix(ramp[0], ramp[1], u * 2) : mix(ramp[1], ramp[2], (u - 0.5) * 2))
+					: mix(ramp[0], ramp[1], u);
+				// trigons' pseudo-normal: the jittered edges give each facet its
+				// own tilt against a fixed (0.6, 0.4) light — the crystal shading
+				var nx = (p2[1] - p1[1]) - (p3[1] - p1[1]);
+				var ny = (p3[0] - p1[0]) - (p2[0] - p1[0]);
+				var ln = Math.sqrt(nx * nx + ny * ny) || 1;
+				var sh = 1 + (nx / ln * 0.6 + ny / ln * 0.4) * depth;
+				tris.push({
+					p: [p1, p2, p3], mx: mx, my: my, d: 0,
+					c: 'rgb(' + clamp255(base[0] * sh) + ',' + clamp255(base[1] * sh) + ',' + clamp255(base[2] * sh) + ')',
+					ang: (rnd() - 0.5) * Math.PI
+				});
+			}
+			for (var j = -1; j < nR; j++) for (var i = -1; i < nC; i++) {
+				var cx = ox + i * colW + ((j & 1) ? colW / 2 : 0);
+				var cy = oy + j * rowH;
+				var c0 = jv(cx, cy), v = hexVerts(cx, cy, s), jvs = [];
+				for (var q = 0; q < 6; q++) jvs.push(jv(v[q][0], v[q][1]));
+				for (q = 0; q < 6; q++) addTri(c0, jvs[q], jvs[(q + 1) % 6]);
+			}
+		}
+
+		function setDelays(dir) {
+			var hw = W / 2, hh = H / 2, dmax = Math.sqrt(hw * hw + hh * hh) || 1;
+			for (var i = 0; i < tris.length; i++) {
+				var tr = tris[i];
+				tr.d = dir === 'bottom' ? 1 - tr.my / H
+					: dir === 'left' ? tr.mx / W
+						: dir === 'right' ? 1 - tr.mx / W
+							: dir === 'center' ? Math.sqrt((tr.mx - hw) * (tr.mx - hw) + (tr.my - hh) * (tr.my - hh)) / dmax
+								: dir === 'random' ? rnd()
+									: tr.my / H;   // top
+			}
+		}
+
+		// Start an entrance (or, with out=true, its mirror). The clock is the
+		// shared `t` accumulator, so step(dt) drives this too and a seeded run
+		// is reproducible offline.
+		function play(o, out) {
+			if (mode !== 'fill') return;
+			o = o || animation || {};
+			var dir = o.direction || 'top';
+			setDelays(dir);
+			var fly = Math.max(W, H) * 0.3;
+			anim = {
+				dir: dir,
+				fx: o.effect || 'scale',
+				dur: (o.duration == null ? 1500 : o.duration) / 1000,
+				stag: o.stagger == null ? 0.6 : o.stagger,
+				ez: EASE[o.easing] || EASE['ease-out'],
+				out: out, t0: t,
+				fvx: (dir === 'left' ? -1 : dir === 'right' ? 1 : 0) * fly,
+				fvy: (dir === 'bottom' ? 1 : dir === 'left' || dir === 'right' ? 0 : -1) * fly
+			};
+			fillVisible = true;
+			start();
+		}
+
+		function tpath(tr) {
+			ctx.beginPath();
+			ctx.moveTo(tr.p[0][0], tr.p[0][1]);
+			ctx.lineTo(tr.p[1][0], tr.p[1][1]);
+			ctx.lineTo(tr.p[2][0], tr.p[2][1]);
+			ctx.closePath();
+			// stroking with the fill colour closes the anti-aliasing seams
+			// between adjacent facets (trigons' seam trick)
+			ctx.fillStyle = tr.c; ctx.fill();
+			ctx.strokeStyle = tr.c; ctx.stroke();
+		}
+		// Animated facet: the scale/rotate/translate is done on the vertices in
+		// JS, not via ctx transforms — per-triangle save/translate/rotate/
+		// restore measured 140 ms/frame (7 fps) on a full-screen mesh, where
+		// the plain-path frame costs ~2.4 ms. Six multiplies per vertex win.
+		function tpathT(tr, v, sc, rot, tx, ty) {
+			var co = Math.cos(rot) * sc, si = Math.sin(rot) * sc;
+			var cx = tr.mx, cy = tr.my;
+			ctx.globalAlpha = v;
+			ctx.beginPath();
+			for (var q = 0; q < 3; q++) {
+				var dx = tr.p[q][0] - cx, dy = tr.p[q][1] - cy;
+				var x = cx + tx + dx * co - dy * si, y = cy + ty + dx * si + dy * co;
+				if (q) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+			}
+			ctx.closePath();
+			ctx.fillStyle = tr.c; ctx.fill();
+			ctx.strokeStyle = tr.c; ctx.stroke();
+		}
+
+		function drawFill() {
+			paintBackground();
+			ctx.lineWidth = 0.75 * dpr;
+			var i, tr;
+			if (!anim) {
+				if (fillVisible) for (i = 0; i < tris.length; i++) tpath(tris[i]);
+				paintVignette();
+				return;
+			}
+			var el = t - anim.t0;
+			var stagDur = anim.dur * anim.stag, triDur = anim.dur - stagDur;
+			for (i = 0; i < tris.length; i++) {
+				tr = tris[i];
+				var te = el - tr.d * stagDur;
+				var p = triDur <= 0 ? (te >= 0 ? 1 : 0) : Math.max(0, Math.min(1, te / triDur));
+				var v = anim.ez(p);
+				if (anim.out) v = 1 - v;
+				if (v < 0.005) continue;
+				if (v === 1) { tpath(tr); continue; }
+				var sc = 1, rot = 0, tx = 0, ty = 0;
+				if (anim.fx === 'scale') { sc = v; rot = tr.ang * (1 - v); }
+				else if (anim.fx === 'spin') { sc = v; rot = tr.ang * 4 * (1 - v); }
+				else if (anim.fx === 'fly') { sc = 0.5 + 0.5 * v; tx = anim.fvx * (1 - v); ty = anim.fvy * (1 - v); }
+				else if (anim.fx !== 'fade') { sc = v; }
+				tpathT(tr, v, sc, rot, tx, ty);
+			}
+			ctx.globalAlpha = 1;
+			paintVignette();
+			if (el >= anim.dur) {
+				// entrance over: freeze as a static painting and let sync() stop
+				// the loop — the sleep covenant extends to fill mode
+				if (anim.out) fillVisible = false;
+				anim = null;
+				sync();
+			}
+		}
+
+		// one static frame outside the loop (resize / set() while idle)
+		function repaint() { if (mode === 'fill' && !anim && !running) frame(0); }
 
 		// ── painting ────────────────────────────────────────
 
@@ -489,25 +667,31 @@
 			H = canvas.height = Math.round(h * dpr);
 			dropCaches();
 			if (mode === 'hive') buildHive();
+			else if (mode === 'fill') { buildFill(); repaint(); }
 		}
 
 		// One frame, advanced by exactly dt — split out of tick() so a renderer
 		// can drive it on its own clock (offline rendering).
 		function frame(dt) {
 			t += dt;
-			if (mode === 'hive') drawHive(); else drawField(dt);
+			if (mode === 'hive') drawHive();
+			else if (mode === 'fill') drawFill();
+			else drawField(dt);
 		}
 
 		function tick(now) {
 			frame(Math.min(0.05, (now - lastT) / 1000));
 			lastT = now;
-			raf = requestAnimationFrame(tick);
+			// frame() can park the loop from inside (fill entrance completing);
+			// rescheduling unconditionally would leak a zombie loop past sync()
+			if (running) raf = requestAnimationFrame(tick);
 		}
 		// `wanted` is the author's intent; visibility and the viewport gate it.
 		// A page with several instances must only animate the one being looked at.
 		var wanted = false, onScreen = true;
 		function sync() {
-			var should = wanted && onScreen && !document.hidden;
+			// a finished fill is a static painting — no idle repaints
+			var should = wanted && onScreen && !document.hidden && !(mode === 'fill' && !anim);
 			if (should === running) return;
 			running = should;
 			if (should) { lastT = performance.now(); raf = requestAnimationFrame(tick); }
@@ -544,7 +728,10 @@
 
 		seedField();
 		resize();
-		if (opts.autoplay !== false) start();
+		if (opts.autoplay !== false) {
+			if (mode === 'fill') { if (animation) play(); else repaint(); }
+			else start();
+		}
 
 		return {
 			canvas: canvas,
@@ -564,9 +751,17 @@
 					size: size, count: count, seed: seed, speed: speed, weight: weight,
 					glow: glow, sweep: sweep, bond: bond, orientation: orientation,
 					inset: inset, nesting: nesting, parallax: parallax,
+					chaos: chaos, depth: depth,
+					animation: animation ? {
+						effect: animation.effect, direction: animation.direction,
+						duration: animation.duration, stagger: animation.stagger, easing: animation.easing
+					} : null,
+					animating: !!anim,
 					vignette: effVignette(), pins: Object.keys(pins).concat(vigPin ? ['vignette'] : [])
 				};
 			},
+			animateIn: function (o) { play(o, false); },
+			animateOut: function (o) { play(o, true); },
 			set: function (o) {
 				var repalette = false, rebuild = false;
 				for (var key in o) {
@@ -578,7 +773,7 @@
 						continue;
 					}
 					switch (key) {
-						case 'mode': mode = v === 'hive' ? 'hive' : 'field'; rebuild = true; break;
+						case 'mode': mode = v === 'hive' || v === 'fill' ? v : 'field'; rebuild = true; break;
 						case 'brand': brand = v; repalette = true; break;
 						case 'theme': theme = v === 'light' ? 'light' : 'dark'; repalette = true; break;
 						case 'size': size = v; rebuild = true; break;
@@ -595,6 +790,9 @@
 						case 'inset': inset = v; rebuild = true; break;
 						case 'nesting': nesting = v; break;
 						case 'parallax': parallax = v; break;
+						case 'chaos': chaos = v; rebuild = true; break;
+						case 'depth': depth = v; rebuild = true; break;
+						case 'animation': animation = v; break;
 						case 'vignette':
 							if (v === 'auto') { vigPin = false; vignette = 0.45; }
 							else { vigPin = true; vignette = v; }
@@ -603,7 +801,19 @@
 				}
 				if (repalette) applyPalette();
 				dropCaches();
-				if (rebuild && mode === 'hive') buildHive();
+				if (mode === 'fill') {
+					if (rebuild || repalette) {
+						buildFill();
+						if (anim) setDelays(anim.dir);   // mesh rebuilt mid-entrance
+					}
+					// switching INTO fill replays the entrance; other changes repaint
+					if ('mode' in o && animation) play();
+					else if (!anim) repaint();
+				} else {
+					if (rebuild && mode === 'hive') buildHive();
+					anim = null;
+					sync();   // resume the loop if fill had parked it
+				}
 			},
 			destroy: function () {
 				stop();

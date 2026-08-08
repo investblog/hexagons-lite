@@ -96,6 +96,46 @@ a real byte cost. Until a size-spike proves it fits, `bond > 0` wins and `inset`
 ignored for the run (documented, not silently: the demo greys the control out).
 Composition is backlog, after the size-spike (TODO).
 
+## Fill mode — the crumpled crystal (ADR 004)
+
+The third visual language, adopted from `W:\Projects\trigons-lite` at the user's
+request: a **filled** faceted honeycomb that assembles itself once and then
+stays a static painting. Line art remains the identity of `field`/`hive`/
+`pattern()`; fill is deliberately different.
+
+Mechanics (trigons', with our discipline):
+
+- **Mesh.** The hive lattice's shared vertices plus each cell's centre, jittered
+  by `chaos` (± `size·chaos/2`). Jitter is a pure function of the vertex's
+  quantised position via `hash()` — shared vertices move together (watertight
+  surface) and the mesh is **stable across resizes** (trigons re-randomises;
+  we don't). Each cell fans into 6 centre triangles — the "crumpled crystal".
+- **Colour, baked at generation.** Per triangle: diagonal ramp parameter
+  `t = ((cx/W)+(cy/H))/2` through a 3-stop piecewise lerp, times pseudo-normal
+  lighting `1 + dot(n̂, (0.6, 0.4))·depth`. Anti-aliasing seams between fills are
+  closed by stroking each triangle with its own fill colour (trigons' seam
+  trick). Default ramp is derived from the auto-palette:
+  `[halo, colors[0], colors[1]]` — a dark crystal brightening toward a brand
+  glow in one corner. (First cut anchored the ramp at `background`, L6–L12: on
+  screen it read as flat black — facets need luminance spread; verified
+  visually, per proof-loop.) A pinned `colors` becomes the ramp verbatim (so
+  the casino-style `[bg, surface, accent]` triple works unchanged).
+- **Entrance/exit.** `animation: { effect, direction, duration, stagger,
+  easing }` — effects `fade | scale | spin | fly` (unknown → scale without
+  twist), directions `top | bottom | left | right | center | random` computed
+  from screen-space centroids, cubic easings. `stagger` splits the budget:
+  wavefront `duration·stagger`, per-cell `duration·(1−stagger)`.
+  `animation: null` appears instantly. `animateOut()` runs the mirror
+  (`v = 1−p`). **After completion the loop stops** — the performance covenant
+  "sleep when there is nothing to draw" extends to fill; `resize()`/`set()`
+  repaint one static frame without replaying.
+- **Determinism.** The entrance clock is the shared `t` accumulator, so
+  `step(dt)` drives fill too; spin angles and `direction: 'random'` delays come
+  from the seeded RNG. Same seed + same dt sequence ⇒ identical fill frames.
+
+Not applicable to fill (ignored): `sweep`, `bond`, `inset`, `weight`, `glow`,
+`count`, `nesting`, `parallax`.
+
 ## Static pattern — no canvas at all
 
 The tiling is periodic with a `√3·s × 3s` rectangular repeat, so `pattern()` returns
@@ -215,7 +255,10 @@ user of one library can drive the other without relearning:
 
 | Option | Default | Applies to | What |
 |---|---|---|---|
-| `mode` | `'field'` | — | `'field'` or `'hive'` |
+| `mode` | `'field'` | — | `'field'`, `'hive'`, or `'fill'` |
+| `chaos` | `0.5` | fill | Vertex jitter, 0–1; `0` = strict comb of facets |
+| `depth` | `0.4` | fill | Pseudo-lighting strength, ± per-facet luminance |
+| `animation` | `{effect:'scale', direction:'top', duration:1500, stagger:0.6, easing:'ease-out'}` | fill | Entrance animation; `null` = appear instantly |
 | `brand` | spintax logo triad | both | Auto-palette seed — hex or array of hexes (see Auto-palette). Settable live; re-deriving rebuilds gradients only |
 | `theme` | `'dark'` | both | `'dark'` or `'light'` — which derivation profile `brand` uses; ignored when all colour options are explicit |
 | `colors` | *derived* | both | Gradient stops along the edges; explicit value overrides derivation |
@@ -257,6 +300,8 @@ hx.canvas;
 hx.get();                              // effective options snapshot: derived colours
                                        // resolved, pins visible — makes set() testable
                                        // and lets users read what brand produced
+hx.animateIn({ effect: 'fly' });       // fill mode: replay the entrance (no-op elsewhere)
+hx.animateOut();                       // fill mode: mirror exit; canvas stays blank after
 
 Hexagons.palette('#e0356b');           // pure: the derived set, no canvas involved
 ```
@@ -359,15 +404,14 @@ No `NPM_TOKEN` secret ever enters the repository. (Octagons ADR 003, adopted.)
 
 ## Acceptance criteria for v0.1.0
 
-- ≤ 5.5 KB (5632 B) gzipped (`npm run size`). History of this number, all
-  measured: octagons = 3764 B; the estimated 5.0 KB split (~3.7 engine + ~0.8
-  palette + ~0.5 hex-specific) did **not** survive contact with terser — the
-  size-spike measured the full v0.1 feature set at **5273 B** (canonical Node-zlib
-  `npm run size`; GNU gzip -9 says 5232 — compressors differ by 41 B), and the honest
-  responses were to cut spec'd features or move the ceiling; the ceiling moved.
-  Marketing copy says "~5 KB gzipped", which 5232 B is. Trim attempts are
-  recorded in AGENTS.md: deduplication and loop-ification both *increased* the
-  gzipped size — trim only by measurement.
+- ≤ 6.75 KB (6912 B) gzipped (`npm run size`). History of this number, all
+  measured: octagons = 3764 B; line-art v0.1 measured 5273 B (5315 after review
+  fixes) against a 5.0 KB estimate, ceiling moved to 5.5 KB; ADR 004's fill
+  mode was estimated at +1.0–1.3 KB and measured at +1361 B — **6676 B** total,
+  20 B over the estimated 6.5 KB ceiling, so the ceiling froze at 6.75 KB with
+  the measurement recorded. Marketing copy says "~6.5 KB gzipped". Trim
+  attempts are recorded in AGENTS.md: deduplication and loop-ification both
+  *increased* the gzipped size — trim only by measurement.
 - `Hexagons.palette()` is pure and deterministic: same hex ⇒ identical output, both
   themes; snapshot-tested. Derived stops clear the edge-visibility floors vs
   `background`; achromatic seeds (chroma < 12) produce a neutral palette, never an
@@ -384,6 +428,10 @@ No `NPM_TOKEN` secret ever enters the repository. (Octagons ADR 003, adopted.)
   observably through `get()` plus a frame-hash change/no-change assertion (the
   external review is right that "round-trips" is untestable without a getter).
 - `bond > 0` cleanly disables `inset` (v0.1 exclusion), and the demo reflects it.
+- Fill mode: the entrance wave plays per `animation` and the rAF loop verifiably
+  stops after completion (static canvas, no idle repaints); a seeded
+  `step(1/60)` run of the entrance is reproducible; container resize does NOT
+  re-randomise the mesh; the demo's theme flip in fill mode plays out→in.
 - `pattern()` tile is seamless (visually check the `√3·s × 3s` repeat at 3 sizes).
 - Demo renders in both themes; spintax.net link present on every promo surface.
 - Published to npm **with provenance** on the first release.

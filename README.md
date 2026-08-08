@@ -1,12 +1,13 @@
 # hexagons
 
 Animated honeycomb backgrounds built from **regular** hexagons. Line art on canvas —
-the colour gradient runs along the edges, nothing is ever filled. Zero dependencies,
-~5 KB gzipped.
+the colour gradient runs along the edges — plus a filled low-poly mode when you
+want the opposite. Zero dependencies, ~6.5 KB gzipped.
 
-Two modes: hexagons drifting toward the viewer in depth, or the living honeycomb
-lattice. And two knobs that span the whole variant space: **`seed`** spins the
-geometry, **`brand`** spins the colours.
+Three modes: hexagons drifting toward the viewer in depth, the living honeycomb
+lattice, or a faceted crystal fill that assembles itself and freezes. And two
+knobs that span the whole variant space: **`seed`** spins the geometry,
+**`brand`** spins the colours.
 
 [![npm](https://img.shields.io/npm/v/hexagons-lite.svg)](https://www.npmjs.com/package/hexagons-lite)
 [![license](https://img.shields.io/npm/l/hexagons-lite.svg)](LICENSE)
@@ -117,6 +118,31 @@ double walls — the read of a real comb. In v0.1 `bond` and `inset` are mutuall
 exclusive (`bond > 0` wins): fused cells form arbitrary polyhex shapes, and
 offsetting their union outline costs more bytes than it is worth. Yet.
 
+### `fill` — the crumpled crystal
+
+Not line art: a **filled** faceted honeycomb. Every cell fans into six flat-shaded
+facets over a diagonal brand gradient, assembles itself once with a staggered
+entrance, then stays a completely static painting — zero CPU after the reveal.
+
+```js
+Hexagons.init('.bg', {
+  mode: 'fill',
+  chaos: 0.5,          // vertex jitter — 0 gives a strict comb of facets
+  depth: 0.4,          // pseudo-lighting strength
+  animation: {         // or null to appear instantly
+    effect: 'scale',   // fade | scale | spin | fly
+    direction: 'top',  // top | bottom | left | right | center | random
+    duration: 1500,
+    stagger: 0.6
+  }
+});
+```
+
+`animateIn()` / `animateOut()` replay the entrance or dissolve the surface — flip
+themes the classy way: `animateOut()`, `set({ theme: 'light' })`, `animateIn()`.
+The mesh is deterministic (no flicker, resize only recentres it), and a `seed`
+makes the entrance reproducible frame-by-frame through `step(dt)`.
+
 ## Static pattern — no canvas at all
 
 The honeycomb is periodic on a `size × √3·size` rectangle, so `pattern()` returns a
@@ -175,7 +201,10 @@ re-randomise, so frames must be produced in order from the start.
 
 | Option | Default | Applies to | What |
 |---|---|---|---|
-| `mode` | `'field'` | — | `'field'` or `'hive'` |
+| `mode` | `'field'` | — | `'field'`, `'hive'`, or `'fill'` |
+| `chaos` | `0.5` | fill | Vertex jitter, 0–1 |
+| `depth` | `0.4` | fill | Facet lighting strength |
+| `animation` | scale/top | fill | Entrance animation object; `null` = instant |
 | `brand` | spintax triad | both | Auto-palette seed — hex or array of hexes |
 | `theme` | `'dark'` | both | `'dark'` or `'light'` derivation profile |
 | `colors` | *derived* | both | Gradient stops along the edges |
