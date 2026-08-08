@@ -47,3 +47,12 @@ through the seeded RNG so `seed` + `step(dt)` reproducibility extends to fill.
 - `sweep`, `bond`, `inset`, `weight`, `glow`, `count`, `nesting`, `parallax`
   do not apply to fill and are ignored by it.
 - The handle gains `animateIn()` / `animateOut()` (no-ops outside fill mode).
+
+## Addendum (2026-08-09, same day)
+
+The user asked for the fork's other option as well. `facets: 'crystal' | 'cells'`
+selects the grain: `'cells'` keeps every hexagon whole (one flat-shaded polygon,
+shade direction from the jittered centre's displacement against the ideal
+lattice point), which at `chaos: 0` degenerates into the strict-comb quantised
+gradient — so all three looks from the original fork are reachable. Crystal
+remains the default per the user's first choice.

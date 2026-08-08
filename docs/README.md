@@ -133,6 +133,22 @@ Mechanics (trigons', with our discipline):
   `step(dt)` drives fill too; spin angles and `direction: 'random'` delays come
   from the seeded RNG. Same seed + same dt sequence ⇒ identical fill frames.
 
+**Grain (`facets`).** The fork the user was offered had three looks; the two
+survivors both ship, selected by `facets`:
+
+- `'crystal'` (default) — six centre-fan facets per cell, pseudo-normal from
+  the jittered triangle edges: the trigons crumpled-crystal read.
+- `'cells'` — each hexagon stays **whole**: one flat-shaded polygon per cell.
+  Its shade direction comes from the jittered centre's displacement against
+  the ideal lattice point (normalised, dotted with the same `(0.6, 0.4)`
+  light) — organic, alive, unmistakably a honeycomb. At `chaos: 0` the
+  displacement vanishes and the shade term goes flat, so the same setting
+  yields the third fork option for free: the strict comb, a quantised brand
+  gradient of perfect hexagons.
+
+The entrance animates per piece either way — whole cells popping in reads
+calmer than facet confetti; same options, same determinism.
+
 Not applicable to fill (ignored): `sweep`, `bond`, `inset`, `weight`, `glow`,
 `count`, `nesting`, `parallax`.
 
@@ -256,7 +272,8 @@ user of one library can drive the other without relearning:
 | Option | Default | Applies to | What |
 |---|---|---|---|
 | `mode` | `'field'` | — | `'field'`, `'hive'`, or `'fill'` |
-| `chaos` | `0.5` | fill | Vertex jitter, 0–1; `0` = strict comb of facets |
+| `facets` | `'crystal'` | fill | `'crystal'` (6 facets per cell) or `'cells'` (whole hexagons) |
+| `chaos` | `0.5` | fill | Vertex jitter, 0–1; `0` + `'cells'` = the strict comb |
 | `depth` | `0.4` | fill | Pseudo-lighting strength, ± per-facet luminance |
 | `animation` | `{effect:'scale', direction:'top', duration:1500, stagger:0.6, easing:'ease-out'}` | fill | Entrance animation; `null` = appear instantly |
 | `brand` | spintax logo triad | both | Auto-palette seed — hex or array of hexes (see Auto-palette). Settable live; re-deriving rebuilds gradients only |

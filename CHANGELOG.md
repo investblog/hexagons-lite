@@ -27,5 +27,10 @@ First implementation of the v0.1 spec (`docs/README.md`):
   `depth`, `animateIn()`/`animateOut()`. Static after the reveal — the rAF loop
   verifiably parks. Hash-stable mesh (resize recentres, never re-randomises);
   seeded entrances reproduce through `step(dt)`.
-- Size: 6728 B min+gzip via the canonical Node-zlib `npm run size`
+- Fill grain `facets: 'crystal' | 'cells'` (ADR 004 addendum): `'cells'` keeps
+  each hexagon whole — one flat-shaded polygon, shade direction from the
+  jittered centre's displacement — giving the organic comb, and the strict
+  quantised-gradient comb at `chaos: 0`. All three looks from the original
+  design fork are reachable.
+- Size: 6825 B min+gzip via the canonical Node-zlib `npm run size`
   (ceiling 6.75 KB = 6912 B, measured — see docs/README.md acceptance).

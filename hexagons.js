@@ -263,6 +263,7 @@
 		var inset = opts.inset == null ? 0 : opts.inset;         // hive only; bond wins
 		var chaos = opts.chaos == null ? 0.5 : opts.chaos;       // fill only
 		var depth = opts.depth == null ? 0.4 : opts.depth;       // fill only
+		var facets = opts.facets === 'cells' ? 'cells' : 'crystal';  // fill grain
 		// undefined -> default entrance; explicit null -> appear instantly
 		var animation = 'animation' in opts ? opts.animation : {};
 		var nesting = opts.nesting !== false;      // field only
@@ -377,33 +378,45 @@
 				var qx = Math.round(x - ox), qy = Math.round(y - oy);
 				return [x + (hash(qx, qy, 7) - 0.5) * amp, y + (hash(qx, qy, 8) - 0.5) * amp];
 			}
-			function addTri(a, b, c) {
-				var p1 = flat ? [a[1], a[0]] : a;
-				var p2 = flat ? [b[1], b[0]] : b;
-				var p3 = flat ? [c[1], c[0]] : c;
-				var mx = (p1[0] + p2[0] + p3[0]) / 3, my = (p1[1] + p2[1] + p3[1]) / 3;
+			function sw(p) { return flat ? [p[1], p[0]] : p; }
+			// bake one piece: ramp position from the centroid, shade from the
+			// (nx, ny) pseudo-normal dotted with a fixed (0.6, 0.4) light
+			function bake(pts, nx, ny) {
+				var mx = 0, my = 0, q;
+				for (q = 0; q < pts.length; q++) { mx += pts[q][0]; my += pts[q][1]; }
+				mx /= pts.length; my /= pts.length;
 				var u = Math.max(0, Math.min(1, (mx / W + my / H) / 2));
 				var base = ramp.length > 2
 					? (u < 0.5 ? mix(ramp[0], ramp[1], u * 2) : mix(ramp[1], ramp[2], (u - 0.5) * 2))
 					: mix(ramp[0], ramp[1], u);
-				// trigons' pseudo-normal: the jittered edges give each facet its
-				// own tilt against a fixed (0.6, 0.4) light — the crystal shading
-				var nx = (p2[1] - p1[1]) - (p3[1] - p1[1]);
-				var ny = (p3[0] - p1[0]) - (p2[0] - p1[0]);
 				var ln = Math.sqrt(nx * nx + ny * ny) || 1;
 				var sh = 1 + (nx / ln * 0.6 + ny / ln * 0.4) * depth;
 				tris.push({
-					p: [p1, p2, p3], mx: mx, my: my, d: 0,
+					p: pts, mx: mx, my: my, d: 0,
 					c: 'rgb(' + clamp255(base[0] * sh) + ',' + clamp255(base[1] * sh) + ',' + clamp255(base[2] * sh) + ')',
 					ang: (rnd() - 0.5) * Math.PI
 				});
+			}
+			// crystal facet: normal from the jittered triangle edges (trigons)
+			function addTri(a, b, c) {
+				var p1 = sw(a), p2 = sw(b), p3 = sw(c);
+				bake([p1, p2, p3],
+					(p2[1] - p1[1]) - (p3[1] - p1[1]),
+					(p3[0] - p1[0]) - (p2[0] - p1[0]));
 			}
 			for (var j = -1; j < nR; j++) for (var i = -1; i < nC; i++) {
 				var cx = ox + i * colW + ((j & 1) ? colW / 2 : 0);
 				var cy = oy + j * rowH;
 				var c0 = jv(cx, cy), v = hexVerts(cx, cy, s), jvs = [];
 				for (var q = 0; q < 6; q++) jvs.push(jv(v[q][0], v[q][1]));
-				for (q = 0; q < 6; q++) addTri(c0, jvs[q], jvs[(q + 1) % 6]);
+				if (facets === 'cells') {
+					// whole cell, one shade: direction from the jittered centre's
+					// displacement — at chaos 0 it vanishes and the comb goes flat
+					var sc = sw(c0), sk = sw([cx, cy]);
+					bake(jvs.map(sw), sc[0] - sk[0], sc[1] - sk[1]);
+				} else {
+					for (q = 0; q < 6; q++) addTri(c0, jvs[q], jvs[(q + 1) % 6]);
+				}
 			}
 		}
 
@@ -446,8 +459,7 @@
 		function tpath(tr) {
 			ctx.beginPath();
 			ctx.moveTo(tr.p[0][0], tr.p[0][1]);
-			ctx.lineTo(tr.p[1][0], tr.p[1][1]);
-			ctx.lineTo(tr.p[2][0], tr.p[2][1]);
+			for (var q = 1; q < tr.p.length; q++) ctx.lineTo(tr.p[q][0], tr.p[q][1]);
 			ctx.closePath();
 			// stroking with the fill colour closes the anti-aliasing seams
 			// between adjacent facets (trigons' seam trick)
@@ -463,7 +475,7 @@
 			var cx = tr.mx, cy = tr.my;
 			ctx.globalAlpha = v;
 			ctx.beginPath();
-			for (var q = 0; q < 3; q++) {
+			for (var q = 0; q < tr.p.length; q++) {
 				var dx = tr.p[q][0] - cx, dy = tr.p[q][1] - cy;
 				var x = cx + tx + dx * co - dy * si, y = cy + ty + dx * si + dy * co;
 				if (q) ctx.lineTo(x, y); else ctx.moveTo(x, y);
@@ -751,7 +763,7 @@
 					size: size, count: count, seed: seed, speed: speed, weight: weight,
 					glow: glow, sweep: sweep, bond: bond, orientation: orientation,
 					inset: inset, nesting: nesting, parallax: parallax,
-					chaos: chaos, depth: depth,
+					chaos: chaos, depth: depth, facets: facets,
 					animation: animation ? {
 						effect: animation.effect, direction: animation.direction,
 						duration: animation.duration, stagger: animation.stagger, easing: animation.easing
@@ -792,6 +804,7 @@
 						case 'parallax': parallax = v; break;
 						case 'chaos': chaos = v; rebuild = true; break;
 						case 'depth': depth = v; rebuild = true; break;
+						case 'facets': facets = v === 'cells' ? 'cells' : 'crystal'; rebuild = true; break;
 						case 'animation': animation = v; break;
 						case 'vignette':
 							if (v === 'auto') { vigPin = false; vignette = 0.45; }

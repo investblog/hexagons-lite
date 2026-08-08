@@ -127,7 +127,8 @@ entrance, then stays a completely static painting — zero CPU after the reveal.
 ```js
 Hexagons.init('.bg', {
   mode: 'fill',
-  chaos: 0.5,          // vertex jitter — 0 gives a strict comb of facets
+  facets: 'crystal',   // 'crystal' = 6 facets per cell; 'cells' = whole hexagons
+  chaos: 0.5,          // vertex jitter
   depth: 0.4,          // pseudo-lighting strength
   animation: {         // or null to appear instantly
     effect: 'scale',   // fade | scale | spin | fly
@@ -137,6 +138,11 @@ Hexagons.init('.bg', {
   }
 });
 ```
+
+Three looks from two knobs: `facets: 'crystal'` is the gemstone low-poly;
+`facets: 'cells'` keeps every hexagon whole — an organic living comb; and
+`facets: 'cells', chaos: 0` is the strict comb — a quantised brand gradient of
+perfect hexagons.
 
 `animateIn()` / `animateOut()` replay the entrance or dissolve the surface — flip
 themes the classy way: `animateOut()`, `set({ theme: 'light' })`, `animateIn()`.
@@ -202,6 +208,7 @@ re-randomise, so frames must be produced in order from the start.
 | Option | Default | Applies to | What |
 |---|---|---|---|
 | `mode` | `'field'` | — | `'field'`, `'hive'`, or `'fill'` |
+| `facets` | `'crystal'` | fill | `'crystal'` (faceted) or `'cells'` (whole hexagons) |
 | `chaos` | `0.5` | fill | Vertex jitter, 0–1 |
 | `depth` | `0.4` | fill | Facet lighting strength |
 | `animation` | scale/top | fill | Entrance animation object; `null` = instant |
