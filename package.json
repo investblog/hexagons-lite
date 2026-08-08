@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "build": "terser hexagons.js --compress --mangle -o hexagons.min.js",
-    "size": "terser hexagons.js --compress --mangle | gzip -9 | wc -c",
+    "size": "node scripts/size.mjs",
     "lint": "eslint ."
   },
   "keywords": [
