@@ -17,3 +17,7 @@
   is carried over from `octagons-lite` verbatim: the engine is a port and those lessons
   (off-screen sleep, gradient caching, shadowBlur ban, one-clean-tab measurement, npm
   publish failure modes) were paid for there. Marked as inherited, not re-earned.
+- **2026-08-08 — Codex activated.** Added `.codex/config.toml` from the local
+  `secrets-guard` and `light-lint` chain fragments. Hook commands use the resolved
+  Git-for-Windows shell (`W:\Program Files\Git\bin\bash.exe`); no project-bound MCP
+  exists, so none was rendered.

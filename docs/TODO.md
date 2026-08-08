@@ -12,10 +12,13 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
 
 ## Open — pre-code decisions
 
-- **Package name.** `hexagons` on npm is a 0.0.0 squat; `honeycombs`, `hexes` taken.
-  Free (checked 2026-08-08): `hexlines` (recommended), `hexagon-bg`, `hexagons.js`.
-  User decision — then record it as ADR 003 and optionally file an npm support
-  dispute for `hexagons` in parallel (must not block v0.1).
+- ~~Package name~~ — **decided: `hexagons-lite`** (ADR 003, verified free E404).
+  Optional later: npm support dispute for the squatted `hexagons`.
+- **Size-spike first.** Measured fact: octagons' `npm run size` = 3764 B, so the
+  5 KB ceiling (ADR-adjusted from 4) leaves ~1.2 KB for palette + hive extras.
+  Before building features, port the engine skeleton + a stub palette and measure —
+  the split (~3.7 engine / ~0.8 palette / ~0.5 hex-specific) must survive contact
+  with terser before the README promises "under 5 KB". (External review, accepted.)
 - **Sample spintax.net's brand hex** — one colour, the only colour constant in the
   source: it seeds the auto-palette (ADR 002) and everything else is derived. Do not
   hand-pick a palette; that mechanism existing is the point.
@@ -49,6 +52,11 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
    function, trivially cheap). Wire both into the pre-push gate.
 
 ## Ideas, not scheduled
+
+- **`bond` × `inset` composition** — insetting fused polyhex components means
+  building and offsetting each component's union outline (polygon offsetting).
+  Excluded from v0.1 by spec (external review, accepted: no unambiguous cheap
+  algorithm); revisit only after the size-spike shows slack.
 
 - **`organic` mode** — jittered/relaxed Voronoi honeycomb. Mathematically native to
   hexagons (Voronoi cells average exactly 6 sides), impossible for octagons; this is

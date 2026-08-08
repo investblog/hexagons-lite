@@ -12,4 +12,4 @@ Format: context → decision → consequences.
 
 - [001 — adopt three octagons ADRs](001-adopt-octagons-adrs.md)
 - [002 — auto-palette: one `brand` hex derives all colours](002-auto-palette.md)
-- 003 — package name (pending user decision, see TODO)
+- [003 — package name: `hexagons-lite`](003-package-name.md)

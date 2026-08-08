@@ -1,0 +1,15 @@
+[[hooks.PreToolUse]]
+matcher = "Bash|shell_command|apply_patch"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = '"W:\Program Files\Git\bin\bash.exe" ".agents/hooks/secrets-guard/guard.sh" --codex'
+statusMessage = "secrets-guard"
+
+[[hooks.PostToolUse]]
+matcher = "apply_patch"
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = '"W:\Program Files\Git\bin\bash.exe" ".agents/hooks/light-lint/lint.sh"'
+statusMessage = "light-lint"
