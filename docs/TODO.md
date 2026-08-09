@@ -34,11 +34,13 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
   id-token+--provenance improvement over octagons' bootstrap worked). Tag
   v0.1.0 pushed; release.yml exited green idempotently ("already on the
   registry"); bootstrap workflow deleted from the repo.
-- **Maintainer's two remaining clicks** (RELEASING.md): configure the Trusted
-  Publisher on npmjs.com (`investblog` / `hexagons-lite` / `release.yml`), then
-  **delete the `NPM_TOKEN` repo secret and revoke the token on npm**. Until
-  then the token still exists — octagons' sat for three releases; ours should
-  not survive the day.
+- ~~Trusted Publisher + token cleanup~~ — **done 2026-08-09**: TP configured by
+  the maintainer (`investblog` / `hexagons-lite` / `release.yml`); `NPM_TOKEN`
+  repo secret deleted the same day (lifetime: one workflow run — the octagons
+  counter-example is closed). Remaining on the maintainer only: **revoke the
+  Automation token on npmjs.com** if not already done. From here every release
+  is `npm version patch && git push --follow-tags`, OIDC + provenance, zero
+  secrets.
 
 ## Open — implementation, in order
 
