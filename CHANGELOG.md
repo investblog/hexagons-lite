@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (targets 0.1.0)
+## 0.1.0 — 2026-08-09
 
 First implementation of the v0.1 spec (`docs/README.md`):
 

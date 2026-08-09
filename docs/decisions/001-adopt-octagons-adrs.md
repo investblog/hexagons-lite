@@ -35,3 +35,11 @@ Adopt, without re-litigating:
 - The engine port must not "improve" any of the three in passing; superseding one
   requires a new ADR here.
 - The first release is blocked on trusted-publisher configuration (TODO), by design.
+
+## Addendum (2026-08-09) — decision 3, platform constraint
+
+npm turned out to forbid configuring a trusted publisher for a not-yet-published
+package (the setting lives in the package's Settings page; npm/cli#8544). The
+intent stands with one bounded exception: v0.1.0 is published once, locally, by
+a human — no token ever enters the repo or CI — and the trusted publisher is
+configured immediately after, before the first CI release. See RELEASING.md.

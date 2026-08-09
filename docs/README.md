@@ -423,10 +423,16 @@ the `get()` snapshot contract. The **reviewer agent**
 (`.agents/agents/reviewer.md`) runs it as the proof-loop's independent pass.
 New invariants belong in the harness, not in one-off console runs.
 
-**Trusted Publisher (OIDC) is configured BEFORE the first release** — octagons
-shipped 0.1.0–0.1.2 without provenance and the cleanup is still on its TODO three
-releases later. Here the order is: repo → trusted publisher → `release.yml` → tag.
-No `NPM_TOKEN` secret ever enters the repository. (Octagons ADR 003, adopted.)
+**Trusted Publisher (OIDC) from the first tag — with one platform-forced
+exception.** npm cannot attach a trusted publisher to a package that does not
+exist yet (verified 2026-08-09; the setting lives in the package's Settings
+page), so v0.1.0 is published once, locally, by a human — never a CI token —
+and the trusted publisher is configured immediately after. Every subsequent
+release goes through `release.yml` via OIDC with provenance, and the workflow
+is idempotent (an already-published version exits green, killing octagons'
+red-run-per-tag noise). **No `NPM_TOKEN` secret ever enters the repository or
+its CI.** Full procedure: `RELEASING.md`. (Octagons ADR 003, adopted with this
+correction.)
 
 ## Acceptance criteria for v0.1.0
 

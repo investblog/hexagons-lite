@@ -29,9 +29,12 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
 - ~~Create the GitHub repo~~ — **done 2026-08-09**: `investblog/hexagons-lite`
   (repo = package name, house style), Pages legacy/main/root like octagons and
   trigons-lite, live demo at https://investblog.github.io/hexagons-lite/.
-- Configure **npm Trusted Publisher BEFORE the first tag**. Order: trusted
-  publisher → `release.yml` → tag. No `NPM_TOKEN` secret, ever — octagons' three
-  provenance-less releases are the incident this rule comes from.
+- **Publish v0.1.0 + Trusted Publisher** (in flight 2026-08-09): npm forbids
+  TP-before-first-publish (verified), so the flow is: human publishes v0.1.0
+  locally → configures TP in package Settings (values in RELEASING.md) → tag
+  v0.1.0 (workflow exits green idempotently) → all later releases OIDC with
+  provenance. No `NPM_TOKEN` secret, ever — octagons' three provenance-less
+  releases are the incident this rule comes from.
 
 ## Open — implementation, in order
 
