@@ -289,6 +289,16 @@ and dragonfly wings all relax into hexagons.
 Any browser with `<canvas>`. `ResizeObserver` and `IntersectionObserver` are used
 when available and degrade gracefully without them.
 
+## The family — 3 · 6 · 8
+
+hexagons-lite is part of a small family of zero-dependency polygon backgrounds, one per shape:
+
+- **3 — [trigons-lite](https://github.com/investblog/trigons-lite)** ([npm](https://www.npmjs.com/package/trigons-lite)): triangles, filled low-poly + line art — the origin of the family
+- **6 — hexagons-lite** (this library): honeycombs with a brand-aware auto-palette
+- **8 — [octagons](https://github.com/investblog/octagons)** ([npm](https://www.npmjs.com/package/octagons)): octagon line art in pseudo-3D depth
+
+Same API spirit everywhere: one global, `init()` / `pattern()`, zero dependencies, a few KB each.
+
 ## Credits
 
 Built by [301ST](https://301.st) for [spintax.net](https://spintax.net) — a free,
