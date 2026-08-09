@@ -29,14 +29,16 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
 - ~~Create the GitHub repo~~ — **done 2026-08-09**: `investblog/hexagons-lite`
   (repo = package name, house style), Pages legacy/main/root like octagons and
   trigons-lite, live demo at https://investblog.github.io/hexagons-lite/.
-- **Publish v0.1.0 + Trusted Publisher** (in flight 2026-08-09): npm forbids
-  TP-before-first-publish (verified), so per the user's call the bootstrap is
-  the house token pattern: user adds a one-time `NPM_TOKEN` repo secret → run
-  `bootstrap-publish.yml` (publishes WITH provenance via id-token) → configure
-  TP (values in RELEASING.md) → **delete the secret, revoke the token, delete
-  the bootstrap workflow** → tag v0.1.0 (release.yml exits green idempotently).
-  The delete step is the octagons lesson — their token sat in the repo three
-  releases long.
+- ~~Publish v0.1.0~~ — **done 2026-08-09**: `hexagons-lite@0.1.0` on npm **with
+  provenance** (bootstrap run 31298600990, transparency log 2389655718 — the
+  id-token+--provenance improvement over octagons' bootstrap worked). Tag
+  v0.1.0 pushed; release.yml exited green idempotently ("already on the
+  registry"); bootstrap workflow deleted from the repo.
+- **Maintainer's two remaining clicks** (RELEASING.md): configure the Trusted
+  Publisher on npmjs.com (`investblog` / `hexagons-lite` / `release.yml`), then
+  **delete the `NPM_TOKEN` repo secret and revoke the token on npm**. Until
+  then the token still exists — octagons' sat for three releases; ours should
+  not survive the day.
 
 ## Open — implementation, in order
 
