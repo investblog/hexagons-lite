@@ -30,11 +30,13 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
   (repo = package name, house style), Pages legacy/main/root like octagons and
   trigons-lite, live demo at https://investblog.github.io/hexagons-lite/.
 - **Publish v0.1.0 + Trusted Publisher** (in flight 2026-08-09): npm forbids
-  TP-before-first-publish (verified), so the flow is: human publishes v0.1.0
-  locally → configures TP in package Settings (values in RELEASING.md) → tag
-  v0.1.0 (workflow exits green idempotently) → all later releases OIDC with
-  provenance. No `NPM_TOKEN` secret, ever — octagons' three provenance-less
-  releases are the incident this rule comes from.
+  TP-before-first-publish (verified), so per the user's call the bootstrap is
+  the house token pattern: user adds a one-time `NPM_TOKEN` repo secret → run
+  `bootstrap-publish.yml` (publishes WITH provenance via id-token) → configure
+  TP (values in RELEASING.md) → **delete the secret, revoke the token, delete
+  the bootstrap workflow** → tag v0.1.0 (release.yml exits green idempotently).
+  The delete step is the octagons lesson — their token sat in the repo three
+  releases long.
 
 ## Open — implementation, in order
 

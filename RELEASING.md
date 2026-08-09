@@ -4,18 +4,26 @@ No npm token ever enters this repository, its CI secrets, or any agent's hands.
 Releases publish via **OIDC Trusted Publishing** with provenance
 (`.github/workflows/release.yml`).
 
-## One-time bootstrap (v0.1.0) — done by a human, locally
+## One-time bootstrap (v0.1.0) — token workflow, then delete the token
 
 npm cannot attach a trusted publisher to a package that does not exist yet
 (verified 2026-08-09: the setting lives in the *package's* Settings page; see
-npm docs "Trusted publishing" and npm/cli#8544). So the very first version is
-published from a maintainer's machine — the only publish that ever bypasses
-CI, and the only one without provenance:
+npm docs "Trusted publishing" and npm/cli#8544). The bootstrap follows the
+house pattern (octagons, trigons-lite), by the user's explicit call:
 
-```sh
-npm login              # browser auth; credentials stay in YOUR ~/.npmrc
-npm publish --access public   # prepack builds hexagons.min.js automatically
-```
+1. npmjs.com → Access Tokens → Generate New Token → **Automation** (skips the
+   OTP that 2FA forces on publish — the `EOTP` failure mode).
+2. GitHub repo → Settings → Secrets and variables → Actions → New repository
+   secret: name `NPM_TOKEN`, paste the token. Encrypted, write-only; the
+   maintainer pastes it directly — it passes through no chat, file, or agent.
+3. Actions → **Bootstrap publish (one-time)** → Run workflow
+   (`bootstrap-publish.yml` sanity-checks the token shape, re-runs the gates,
+   verifies the tarball, publishes; it requests `id-token` and publishes with
+   `--provenance`, so even the bootstrap version carries an attestation).
+4. **Immediately after success:** configure the Trusted Publisher (below),
+   then DELETE the `NPM_TOKEN` secret and revoke the token on npmjs.com, and
+   delete `bootstrap-publish.yml`. Octagons' open TODO — token still sitting
+   in the repo three releases later — is the incident this step pins.
 
 ## One-time setup on npmjs.com (right after the first publish)
 

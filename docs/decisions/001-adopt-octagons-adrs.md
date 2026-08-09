@@ -39,7 +39,12 @@ Adopt, without re-litigating:
 ## Addendum (2026-08-09) — decision 3, platform constraint
 
 npm turned out to forbid configuring a trusted publisher for a not-yet-published
-package (the setting lives in the package's Settings page; npm/cli#8544). The
-intent stands with one bounded exception: v0.1.0 is published once, locally, by
-a human — no token ever enters the repo or CI — and the trusted publisher is
-configured immediately after, before the first CI release. See RELEASING.md.
+package (the setting lives in the package's Settings page; npm/cli#8544). By the
+user's explicit decision the bootstrap follows the house pattern (octagons,
+trigons-lite): a one-time `NPM_TOKEN` repo secret drives
+`bootstrap-publish.yml`, and both the secret and the workflow are deleted right
+after the trusted publisher is configured — the token's lifetime is one
+workflow run, not three releases (octagons' open TODO is the counter-example).
+Improvement over the neighbours: the bootstrap publishes with `--provenance`
+(attestation via the GHA OIDC token, auth via NPM_TOKEN), so no version ever
+ships without provenance. See RELEASING.md.
