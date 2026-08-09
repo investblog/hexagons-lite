@@ -21,7 +21,9 @@ background tab. Regression checks are named after the review finding they pin.</
 <ul id="out"></ul>
 <div id="sum">running…</div>
 
-<script src="../hexagons.js"></script>
+<!-- cache-busted: a verify page testing a stale cached library produced a
+     convincing false FAIL (and would just as happily produce a false PASS) -->
+<script>document.write('<script src="../hexagons.js?ts=' + Date.now() + '"><\/script>');</script>
 <script>
 (function () {
 	'use strict';
@@ -225,22 +227,52 @@ background tab. Regression checks are named after the review finding they pin.</
 			'got ' + JSON.stringify(an));
 	});
 
-	// ── runner ──────────────────────────────────────────────
-	var out = document.getElementById('out'), passed = 0;
-	checks.forEach(function (c) {
-		var li = document.createElement('li');
-		try {
-			c.fn();
-			li.className = 'pass'; li.textContent = c.name; passed++;
-		} catch (e) {
-			li.className = 'fail'; li.textContent = c.name + ' — ' + e.message;
+	check('parked instance survives the debounced ResizeObserver wipe (async)', function () {
+		// assigning canvas.width in resize() clears the canvas; the RO callback
+		// fires ~120 ms after init and left stopped instances blank until the
+		// generalised repaint() fix. Applies to every mode with autoplay:false.
+		function alive(hx) {
+			var c = hx.canvas, d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+			for (var i = 0; i < d.length; i += 23) if (d[i] + d[i + 1] + d[i + 2] > 90) return true;
+			return false;
 		}
-		out.appendChild(li);
+		var a = inst({ mode: 'hive', autoplay: false, sweep: 0 });
+		var b = inst({ mode: 'fill', animation: null, autoplay: false });
+		a.h.step(0); b.h.step(0);
+		return new Promise(function (resolve, reject) {
+			setTimeout(function () {
+				try {
+					assert(alive(a.h), 'hive canvas blank after the RO resize');
+					assert(alive(b.h), 'fill canvas blank after the RO resize');
+					resolve();
+				} catch (e) { reject(e); }
+				finally { a.done(); b.done(); }
+			}, 400);
+		});
 	});
-	var sum = document.getElementById('sum');
-	sum.textContent = passed + ' / ' + checks.length + (passed === checks.length ? ' — ALL GREEN' : ' — FAILURES ABOVE');
-	sum.style.color = passed === checks.length ? '#18C27A' : '#FF4F6E';
-	document.title = (passed === checks.length ? 'PASS' : 'FAIL') + ' — hexagons verify';
+
+	// ── runner (sequential; a check may return a Promise) ───
+	var out = document.getElementById('out'), passed = 0, idx = 0;
+	function runNext() {
+		if (idx >= checks.length) {
+			var sum = document.getElementById('sum');
+			sum.textContent = passed + ' / ' + checks.length + (passed === checks.length ? ' — ALL GREEN' : ' — FAILURES ABOVE');
+			sum.style.color = passed === checks.length ? '#18C27A' : '#FF4F6E';
+			document.title = (passed === checks.length ? 'PASS' : 'FAIL') + ' — hexagons verify';
+			return;
+		}
+		var c = checks[idx++];
+		var li = document.createElement('li');
+		out.appendChild(li);
+		Promise.resolve().then(function () { return c.fn(); }).then(function () {
+			li.className = 'pass'; li.textContent = c.name; passed++;
+			runNext();
+		}, function (e) {
+			li.className = 'fail'; li.textContent = c.name + ' — ' + e.message;
+			runNext();
+		});
+	}
+	runNext();
 })();
 </script>
 </body>

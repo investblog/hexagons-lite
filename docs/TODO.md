@@ -51,11 +51,15 @@ one exists; an item is dropped when its plan moves to `plans/done/`.
    orientation works, pattern seamless at 22 px, 61 fps steady in one clean tab.
    Verified in-browser: seed determinism (two 300-frame runs pixel-identical),
    corner alpha 0 with `background: null`, `palette()` pure, grey seed → graphite.
-2. **Verification still owed before the README publishes numbers:** `bond` useful
-   range across sizes (0.12 looked right at size 90 — check 0.10–0.20 claim at
-   other sizes), `pattern()` legibility floor (claimed ~14 px — eyeballed only at
-   22 px so far, check 1x vs retina), red/green/yellow brand seeds (light brands
-   break naive ramps — only blue triad + violet + grey checked).
+2. ~~Verification owed on published numbers~~ — **done 2026-08-09, claims hold**:
+   `bond` eyeballed at sizes 40/90/160 — 0.15 coherent everywhere, 0.25
+   borderline, 0.40 visibly disintegrating (README's "0.10–0.20, falls apart
+   past ~0.4" stands); `pattern()` floor eyeballed at 10/12/14/16/22 px —
+   legible at 14, texture at 10–12 ("roughly 14 px" stands); red/green/yellow
+   brand seeds eyeballed in fill dark+light — ramps hold (and the harness pins
+   the contrast floors for 36 hues numerically). Side effect: the verification
+   board exposed the parked-instance ResizeObserver wipe (fixed; harness check
+   added; AGENTS.md lesson).
 3. ~~Playwright tests~~ — **cut by user decision 2026-08-09**: no test-runner
    dependency. Verification = the documented in-browser check run executed by the
    reviewer agent (see spec, "Verification model"). Revisit only after a real

@@ -528,8 +528,12 @@
 			}
 		}
 
-		// one static frame outside the loop (resize / set() while idle)
-		function repaint() { if (mode === 'fill' && !anim && !running) frame(0); }
+		// One static frame outside the loop. Assigning canvas.width in resize()
+		// WIPES the canvas, and a parked instance (autoplay:false / fill after
+		// its entrance) has no rAF to repaint it — the debounced ResizeObserver
+		// callback was leaving stopped instances blank ~120 ms after init.
+		// dt=0 advances nothing, so this is draw-only and deterministic.
+		function repaint() { if (!running) frame(0); }
 
 		// ── painting ────────────────────────────────────────
 
@@ -688,8 +692,8 @@
 			else if (mode === 'fill') {
 				buildFill();
 				if (anim) setDelays(anim.dir);   // keep the wave through a resize
-				repaint();
 			}
+			repaint();
 		}
 
 		// One frame, advanced by exactly dt — split out of tick() so a renderer
@@ -833,14 +837,14 @@
 						buildFill();
 						if (anim) setDelays(anim.dir);   // mesh rebuilt mid-entrance
 					}
-					// switching INTO fill replays the entrance; other changes repaint
+					// switching INTO fill replays the entrance
 					if ('mode' in o && animation) play();
-					else if (!anim) repaint();
 				} else {
 					if (rebuild && mode === 'hive') buildHive();
 					anim = null;
 					sync();   // resume the loop if fill had parked it
 				}
+				repaint();   // a parked instance must show the change too
 			},
 			destroy: function () {
 				stop();

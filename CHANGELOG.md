@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.1 — 2026-08-09
+
+- Fix: a parked instance (`autoplay: false`, or fill after its entrance) went
+  blank ~120 ms after drawing — the debounced ResizeObserver callback resizes
+  (= clears) the canvas and nothing repainted. `resize()`/`set()` now repaint
+  stopped instances in every mode (draw-only, `dt = 0`, determinism intact).
+- Verified and frozen the published numbers: `bond` 0.10–0.20 across sizes
+  40–160, `pattern()` legibility floor ~14 px, red/green/yellow brand ramps.
+- Harness: async runner, regression check for the ResizeObserver wipe,
+  cache-busted library load (13 checks).
+
 ## 0.1.0 — 2026-08-09
 
 First implementation of the v0.1 spec (`docs/README.md`):

@@ -87,6 +87,14 @@ verbatim here because the engine is a port. New lessons of hexagons' own — app
   `v === 1` facet path skipped `globalAlpha`, inheriting the previous partial
   facet's transparency. If one branch sets context state, every sibling branch
   either sets it too or the loop resets it first.
+- **Assigning `canvas.width` wipes the canvas — a parked instance must repaint
+  after every resize.** The debounced ResizeObserver callback fires ~120 ms
+  after init, resizes (= clears) the canvas, and an `autoplay: false` instance
+  had no loop to repaint it — every stopped hive/field went blank shortly after
+  drawing. Found only because a verification board happened to read pixels
+  late; the harness now pins it. Corollary: **a verify page must cache-bust the
+  library it loads** — a stale cached script produced a convincing false FAIL
+  and would as happily produce a false PASS.
 - **Gzip beats clever — trim only by measurement.** Deduplicating the vertex table
   into a shared function grew the gzipped output by 20 B, and replacing unrolled
   derivation triples with loops grew it by 17 B more: gzip compresses repetition
