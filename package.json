@@ -1,6 +1,6 @@
 {
   "name": "hexagons-lite",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Animated honeycomb backgrounds built from regular hexagons. Line art, zero dependencies, brand-aware auto-palette.",
   "main": "hexagons.js",
   "files": [
