@@ -5,14 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>hexagons — animated honeycomb backgrounds</title>
 <style>
+	/* Tokens follow the 301-ui control recipe (W:\Projects\301-ui, theme.css):
+	   color-scheme drives the NATIVE dropdown popup palette — without it the
+	   options list renders light-on-light over a dark page and is unreadable. */
 	:root {
 		--bg: #05070d; --surface: rgba(10, 14, 24, 0.82); --text: #e8ecf5;
-		--muted: #9aa3b5; --border: rgba(140, 160, 200, 0.18);
+		--muted: #9aa3b5; --border: rgba(255, 255, 255, 0.14);
+		--input-bg: rgba(15, 16, 22, 0.9);
 		--accent: #d6af3c; --link: #66cdf7;
+		--chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M1 1l3 3 3-3' fill='none' stroke='%23A0A4AF' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
 	}
+	body { color-scheme: dark; }
 	body.light {
 		--bg: #f5f6fa; --surface: rgba(255, 255, 255, 0.85); --text: #1a2030;
-		--muted: #5d6575; --border: rgba(40, 60, 100, 0.15);
+		--muted: #5d6575; --border: rgba(17, 17, 17, 0.14);
+		--input-bg: rgba(255, 255, 255, 0.9);
+		--chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M1 1l3 3 3-3' fill='none' stroke='%23666A73' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+		color-scheme: light;
 	}
 	* { margin: 0; box-sizing: border-box; }
 	body {
@@ -43,8 +52,25 @@
 	.row.off label, .row.off output { opacity: 0.45; }
 	.row output { flex: 0 0 38px; text-align: right; font-variant-numeric: tabular-nums; }
 	.row select, .row input[type=number] {
-		flex: 1; background: transparent; color: var(--text);
-		border: 1px solid var(--border); border-radius: 6px; padding: 3px 6px; font: inherit;
+		flex: 1; color: var(--text); font: inherit;
+		background: var(--input-bg);
+		border: 1px solid var(--border); border-radius: 8px;
+		padding: 4px 8px; min-height: 26px;
+		-webkit-appearance: none; appearance: none;
+		transition: border-color 0.16s ease-out, box-shadow 0.16s ease-out;
+	}
+	.row select {
+		background-image: var(--chev);
+		background-repeat: no-repeat;
+		background-position: right 8px center;
+		padding-right: 24px;
+		cursor: pointer;
+	}
+	.row select:hover, .row input[type=number]:hover { border-color: var(--muted); }
+	.row select:focus-visible, .row input[type=number]:focus-visible, .btn:focus-visible {
+		outline: none;
+		border-color: var(--accent);
+		box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent), transparent 80%);
 	}
 	.row input[type=color] { width: 34px; height: 26px; border: 1px solid var(--border); border-radius: 6px; background: none; padding: 1px; }
 	.chk { display: inline-flex; align-items: center; gap: 5px; margin-right: 10px; color: var(--muted); }
