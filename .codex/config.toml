@@ -3,7 +3,7 @@ matcher = "Bash|shell_command|apply_patch"
 
 [[hooks.PreToolUse.hooks]]
 type = "command"
-command = '"W:\Program Files\Git\bin\bash.exe" ".agents/hooks/secrets-guard/guard.sh" --codex'
+command = 'git -c "alias.agent-hook=!bash .agents/hooks/secrets-guard/guard.sh" agent-hook --codex; exit $LASTEXITCODE'
 statusMessage = "secrets-guard"
 
 [[hooks.PostToolUse]]
@@ -11,5 +11,5 @@ matcher = "apply_patch"
 
 [[hooks.PostToolUse.hooks]]
 type = "command"
-command = '"W:\Program Files\Git\bin\bash.exe" ".agents/hooks/light-lint/lint.sh"'
+command = 'git -c "alias.agent-hook=!bash .agents/hooks/light-lint/lint.sh" agent-hook; exit $LASTEXITCODE'
 statusMessage = "light-lint"
